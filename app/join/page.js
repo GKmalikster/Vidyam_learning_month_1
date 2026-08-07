@@ -16,11 +16,13 @@ export default async function JoinPage() {
   return (
     <>
       <SiteNav />
-      <div className="section-head" style={{ marginTop: 32 }}><h2>Join as a learner</h2></div>
-      <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
-        Pick as many free programs as you like — one form, one profile.
-      </p>
-      <JoinForm sessions={sessions} categories={categories} />
+      <div className="wrap">
+        <div className="section-head" style={{ marginTop: 32 }}><h2>Join as a learner</h2></div>
+        <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
+          Pick as many free programs as you like — one form, one profile.
+        </p>
+        <JoinForm sessions={sessions} categories={categories} />
+      </div>
       <Footer />
     </>
   );

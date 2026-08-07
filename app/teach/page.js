@@ -10,11 +10,13 @@ export default async function TeachPage() {
   return (
     <>
       <SiteNav />
-      <div className="section-head" style={{ marginTop: 32 }}><h2>Become a trainer or mentor</h2></div>
-      <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
-        Share your expertise with the community — even one session makes a difference.
-      </p>
-      <TeachForm categories={categories} />
+      <div className="wrap">
+        <div className="section-head" style={{ marginTop: 32 }}><h2>Become a trainer or mentor</h2></div>
+        <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
+          Share your expertise with the community — even one session makes a difference.
+        </p>
+        <TeachForm categories={categories} />
+      </div>
       <Footer />
     </>
   );

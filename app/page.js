@@ -61,82 +61,85 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div className="value-grid">
-        <div className="value-card"><div className="value-icon">🎯</div><h3>Bite-sized, live</h3><p>60–90 minute sessions you can attend after work — no multi-week course commitment.</p></div>
-        <div className="value-card"><div className="value-icon">🗂️</div><h3>Register once, join many</h3><p>Pick as many programs as you like in a single form — no repeating your details each time.</p></div>
-        <div className="value-card"><div className="value-icon">🧑‍🏫</div><h3>Practitioners, not slides</h3><p>Trainers are working professionals teaching what they actually do, with real profiles you can review.</p></div>
-        <div className="value-card"><div className="value-icon">🤝</div><h3>Community, not content</h3><p>Built around peer support and shared learning, not a funnel — everyone&apos;s welcome.</p></div>
-      </div>
+      <div className="wrap">
+        <div className="value-grid">
+          <div className="value-card"><div className="value-icon">🎯</div><h3>Bite-sized, live</h3><p>60–90 minute sessions you can attend after work — no multi-week course commitment.</p></div>
+          <div className="value-card"><div className="value-icon">🗂️</div><h3>Register once, join many</h3><p>Pick as many programs as you like in a single form — no repeating your details each time.</p></div>
+          <div className="value-card"><div className="value-icon">🧑‍🏫</div><h3>Practitioners, not slides</h3><p>Trainers are working professionals teaching what they actually do, with real profiles you can review.</p></div>
+          <div className="value-card"><div className="value-icon">🤝</div><h3>Community, not content</h3><p>Built around peer support and shared learning, not a funnel — everyone&apos;s welcome.</p></div>
+        </div>
 
-      {courses.map((course) => {
-        const steps = courseSessions.filter((s) => s.course_id === course.id);
-        return (
-          <div className="course-band" key={course.id} style={{ "--cat-color": course.category_color }}>
-            <div className="course-eyebrow">Multi-part course</div>
-            <h3>{course.title}</h3>
-            <p>{course.description}</p>
-            <div className="course-steps">
-              {steps.map((s, i) => (
-                <Link key={s.id} href={`/programs/${s.id}`} className="course-step" style={{ textDecoration: "none", color: "inherit" }}>
-                  <span className="course-step-num">{i + 1}</span>
-                  <span><b>{s.title}</b><br />{s.date || "Date TBC"}</span>
+        {courses.map((course) => {
+          const steps = courseSessions.filter((s) => s.course_id === course.id);
+          return (
+            <div className="course-band" key={course.id} style={{ "--cat-color": course.category_color }}>
+              <div className="course-eyebrow">Multi-part course</div>
+              <h3>{course.title}</h3>
+              <p>{course.description}</p>
+              <div className="course-steps">
+                {steps.map((s, i) => (
+                  <Link key={s.id} href={`/programs/${s.id}`} className="course-step" style={{ textDecoration: "none", color: "inherit" }}>
+                    <span className="course-step-num">{i + 1}</span>
+                    <span><b>{s.title}</b><br />{s.date || "Date TBC"}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="section-head" style={{ marginTop: 12 }}>
+          <h2>Upcoming programs</h2>
+        </div>
+        <ProgramGrid sessions={sessions} categories={categories} />
+
+        {trainers.length > 0 && (
+          <>
+            <div className="section-head">
+              <h2>Meet your trainers</h2>
+              <Link href="/trainers" className="pill pill-ghost pill-sm">See all trainers</Link>
+            </div>
+            <p className="section-sub">Working professionals who volunteer their time and craft to teach what they actually do.</p>
+            <div className="trainer-mini-grid">
+              {trainers.map((t) => (
+                <Link key={t.id} href={`/trainers/${t.id}`} className="trainer-mini-card">
+                  <div className="trainer-mini-avatar">
+                    {t.photo ? (
+                      <img src={t.photo} alt={t.name} />
+                    ) : (
+                      <span>{t.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</span>
+                    )}
+                  </div>
+                  <h4>{t.name}</h4>
+                  <div className="role">{t.years ? `${t.years} yrs · ` : ""}{t.mode}</div>
+                  {t.bio && <p className="trainer-mini-bio">{t.bio}</p>}
                 </Link>
               ))}
             </div>
-          </div>
-        );
-      })}
+          </>
+        )}
 
-      <div className="section-head" style={{ marginTop: 12 }}>
-        <h2>Upcoming programs</h2>
+        {past.length > 0 && (
+          <>
+            <div className="section-head">
+              <h2>Past programs</h2>
+            </div>
+            <p className="section-sub">Missed one live? Recordings and materials are still here.</p>
+            <div className="grid" style={{ marginBottom: 56 }}>
+              {past.map((s) => (
+                <Link key={s.id} href={`/programs/${s.id}`} className="card" style={{ "--cat-color": s.category_color, textDecoration: "none" }}>
+                  <span className="tag">{s.category_name || "General"}</span>
+                  <h3>{s.title}</h3>
+                  <div className="meta">{s.date}</div>
+                  <div className="meta" style={{ marginTop: 8, color: s.recording_url ? "var(--blue)" : "var(--navy-soft)" }}>
+                    {s.recording_url ? "▶ Recording available" : "Materials available"}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </div>
-      <ProgramGrid sessions={sessions} categories={categories} />
-
-      {trainers.length > 0 && (
-        <>
-          <div className="section-head">
-            <h2>Meet your trainers</h2>
-            <Link href="/trainers" className="pill pill-ghost pill-sm">See all trainers</Link>
-          </div>
-          <p className="section-sub">Working professionals who volunteer their time and craft to teach what they actually do.</p>
-          <div className="trainer-mini-grid">
-            {trainers.map((t) => (
-              <div key={t.id} className="trainer-mini-card">
-                <div className="trainer-mini-avatar">
-                  {t.photo ? (
-                    <img src={t.photo} alt={t.name} />
-                  ) : (
-                    <span>{t.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</span>
-                  )}
-                </div>
-                <h4>{t.name}</h4>
-                <div className="role">{t.years ? `${t.years} yrs · ` : ""}{t.mode}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {past.length > 0 && (
-        <>
-          <div className="section-head">
-            <h2>Past programs</h2>
-          </div>
-          <p className="section-sub">Missed one live? Recordings and materials are still here.</p>
-          <div className="grid" style={{ marginBottom: 56 }}>
-            {past.map((s) => (
-              <Link key={s.id} href={`/programs/${s.id}`} className="card" style={{ "--cat-color": s.category_color, textDecoration: "none" }}>
-                <span className="tag">{s.category_name || "General"}</span>
-                <h3>{s.title}</h3>
-                <div className="meta">{s.date}</div>
-                <div className="meta" style={{ marginTop: 8, color: s.recording_url ? "var(--blue)" : "var(--navy-soft)" }}>
-                  {s.recording_url ? "▶ Recording available" : "Materials available"}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
 
       <Footer />
     </>
