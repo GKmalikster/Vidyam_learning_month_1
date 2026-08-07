@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import db from "@/lib/db";
+import { sendEmail, trainerApprovedEmail } from "@/lib/email";
+
+function randomTempPassword() {
+  // 10 url-safe characters — easy enough to read aloud/copy if the admin
+  // has to relay it manually when Resend isn't configured yet.
+  return crypto.randomBytes(8).toString("base64url").slice(0, 10);
+}
 
 // PATCH handles both edits and status changes (approve / reject) — the
-// console UI sends whichever fields changed.
+// console UI sends whichever fields changed. Approving a trainer for the
+// first time also provisions their dashboard login (trainer_accounts) and
+// emails them the credentials.
 export async function PATCH(request, { params }) {
   const { id } = await params;
   const body = await request.json();
@@ -34,7 +45,43 @@ export async function PATCH(request, { params }) {
     ]
   );
 
-  return NextResponse.json({ ok: true });
+  let tempPassword = null;
+  let emailSent = false;
+  const justApproved = body.status === "approved" && existing.status !== "approved";
+  if (justApproved) {
+    const account = await db.queryOne("SELECT id FROM trainer_accounts WHERE trainer_id = $1", [id]);
+    if (!account) {
+      tempPassword = randomTempPassword();
+      const hash = bcrypt.hashSync(tempPassword, 10);
+      await db.query(
+        "INSERT INTO trainer_accounts (trainer_id, password_hash, must_reset) VALUES ($1, $2, true)",
+        [id, hash]
+      );
+      if (merged.email) {
+        try {
+          const origin = request.headers.get("origin") || `https://${request.headers.get("host")}`;
+          const { subject, html } = trainerApprovedEmail({
+            trainerName: merged.name,
+            loginUrl: `${origin}/trainer/login`,
+            tempPassword,
+          });
+          const result = await sendEmail({ to: merged.email, subject, html });
+          emailSent = !result.skipped;
+          await db.query(
+            "INSERT INTO notifications_queue (type, recipient_email, subject, body, status, sent_at) VALUES ($1,$2,$3,$4,$5, CASE WHEN $5='sent' THEN NOW() ELSE NULL END)",
+            ["trainer_approved", merged.email, subject, html, emailSent ? "sent" : "skipped"]
+          );
+        } catch (e) {
+          await db.query(
+            "INSERT INTO notifications_queue (type, recipient_email, subject, body, status, error) VALUES ($1,$2,$3,$4,'failed',$5)",
+            ["trainer_approved", merged.email, "You're approved to train on Vidyam Learning Month", "", e.message]
+          );
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ ok: true, tempPassword, emailSent });
 }
 
 export async function DELETE(request, { params }) {
@@ -42,6 +89,7 @@ export async function DELETE(request, { params }) {
   // Unassign (not cascade-delete) any sessions pointing at this trainer,
   // matching the prior prototype's behaviour.
   await db.query("UPDATE sessions SET trainer_id = NULL WHERE trainer_id = $1", [id]);
+  await db.query("DELETE FROM trainer_accounts WHERE trainer_id = $1", [id]);
   await db.query("DELETE FROM trainers WHERE id = $1", [id]);
   return NextResponse.json({ ok: true });
 }

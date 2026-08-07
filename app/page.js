@@ -1,3 +1,4 @@
+import Link from "next/link";
 import db from "@/lib/db";
 import SiteNav from "./components/SiteNav";
 import ProgramGrid from "./components/ProgramGrid";
@@ -7,9 +8,10 @@ export const dynamic = "force-dynamic"; // always reflect the latest admin-appro
 
 export default async function HomePage() {
   const sessions = await db.queryAll(`
-    SELECT s.id, s.title, s.brief, s.date, s.time, s.category_id,
+    SELECT s.id, s.title, s.brief, s.date, s.time, s.category_id, s.capacity,
            c.name as category_name, c.color as category_color,
-           t.id as trainer_id, t.name as trainer_name, t.photo as trainer_photo
+           t.id as trainer_id, t.name as trainer_name, t.photo as trainer_photo,
+           (SELECT COUNT(*)::int FROM registrations r WHERE r.session_id = s.id AND r.waitlisted = false) as registered_count
     FROM sessions s
     LEFT JOIN categories c ON c.id = s.category_id
     LEFT JOIN trainers t ON t.id = s.trainer_id
@@ -18,6 +20,23 @@ export default async function HomePage() {
   `);
   const categories = await db.queryAll("SELECT * FROM categories ORDER BY name");
   const { c: trainerCount } = await db.queryOne("SELECT COUNT(*)::int as c FROM trainers WHERE status='approved'");
+
+  const courses = await db.queryAll(`
+    SELECT co.*, c.color as category_color FROM courses co
+    LEFT JOIN categories c ON c.id = co.category_id
+    WHERE co.status = 'published' ORDER BY co.created_at DESC
+  `);
+  const courseSessions = await db.queryAll(`
+    SELECT id, title, date, time, course_id, course_order FROM sessions
+    WHERE course_id IS NOT NULL AND status IN ('approved','completed')
+    ORDER BY course_order ASC
+  `);
+
+  const past = await db.queryAll(`
+    SELECT s.id, s.title, s.date, s.recording_url, c.name as category_name, c.color as category_color
+    FROM sessions s LEFT JOIN categories c ON c.id = s.category_id
+    WHERE s.status = 'completed' ORDER BY s.date DESC LIMIT 6
+  `);
 
   return (
     <>
@@ -45,10 +64,50 @@ export default async function HomePage() {
         <div className="value-card"><div className="value-icon">🤝</div><h3>Community, not content</h3><p>Built around peer support and shared learning, not a funnel — everyone&apos;s welcome.</p></div>
       </div>
 
+      {courses.map((course) => {
+        const steps = courseSessions.filter((s) => s.course_id === course.id);
+        return (
+          <div className="course-band" key={course.id} style={{ "--cat-color": course.category_color }}>
+            <div className="course-eyebrow">Multi-part course</div>
+            <h3>{course.title}</h3>
+            <p>{course.description}</p>
+            <div className="course-steps">
+              {steps.map((s, i) => (
+                <Link key={s.id} href={`/programs/${s.id}`} className="course-step" style={{ textDecoration: "none", color: "inherit" }}>
+                  <span className="course-step-num">{i + 1}</span>
+                  <span><b>{s.title}</b><br />{s.date || "Date TBC"}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
       <div className="section-head" style={{ marginTop: 12 }}>
         <h2>Upcoming programs</h2>
       </div>
       <ProgramGrid sessions={sessions} categories={categories} />
+
+      {past.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2>Past programs</h2>
+          </div>
+          <p className="section-sub">Missed one live? Recordings and materials are still here.</p>
+          <div className="grid" style={{ marginBottom: 56 }}>
+            {past.map((s) => (
+              <Link key={s.id} href={`/programs/${s.id}`} className="card" style={{ "--cat-color": s.category_color, textDecoration: "none" }}>
+                <span className="tag">{s.category_name || "General"}</span>
+                <h3>{s.title}</h3>
+                <div className="meta">{s.date}</div>
+                <div className="meta" style={{ marginTop: 8, color: s.recording_url ? "var(--blue)" : "var(--navy-soft)" }}>
+                  {s.recording_url ? "▶ Recording available" : "Materials available"}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
       <Footer />
     </>

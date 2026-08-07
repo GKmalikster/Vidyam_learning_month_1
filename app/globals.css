@@ -226,6 +226,71 @@ footer{border-top:1px solid var(--line);padding:30px 0;text-align:center;color:v
   .statrow{gap:20px;}
 }
 
+/* ================== DASHBOARD SHELL (console + trainer dashboard) ================== */
+.dash-shell{display:flex;min-height:100vh;background:var(--panel);}
+.dash-sidebar{width:248px;flex-shrink:0;background:var(--navy);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.dash-brand{display:flex;align-items:center;gap:10px;padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.12);}
+.dash-brand img{height:30px;width:auto;filter:brightness(0) invert(1);}
+.dash-brand b{display:block;font-size:14.5px;color:#fff;}
+.dash-brand span{display:block;font-size:11px;color:rgba(255,255,255,0.55);}
+.dash-nav{flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
+.dash-nav button{display:flex;align-items:center;gap:10px;text-align:left;background:none;border:none;color:rgba(255,255,255,0.72);font-family:'Inter';font-weight:600;font-size:13.5px;padding:11px 12px;border-radius:10px;cursor:pointer;position:relative;}
+.dash-nav button:hover{background:rgba(255,255,255,0.06);color:#fff;}
+.dash-nav button.active{background:#fff;color:var(--navy);}
+.dash-nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+.dash-nav-badge{margin-left:auto;background:var(--orange);color:#fff;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 7px;min-width:18px;text-align:center;}
+.dash-nav button.active .dash-nav-badge{background:var(--orange);color:#fff;}
+.dash-sidebar-foot{padding:16px 16px 20px;border-top:1px solid rgba(255,255,255,0.12);}
+.dash-user{font-size:12.5px;color:rgba(255,255,255,0.75);margin-bottom:10px;}
+.dash-sidebar-foot .pill-ghost{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.2);color:#fff;}
+.dash-main{flex:1;min-width:0;padding:28px 32px 60px;}
+.dash-stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;}
+.dash-stat-tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+.dash-stat-value{font-size:26px;font-weight:800;font-family:'Baloo 2';color:var(--navy);}
+.dash-stat-label{font-size:12px;color:var(--navy-soft);margin-top:2px;}
+.dash-content{max-width:1080px;}
+@media(max-width:860px){
+  .dash-shell{flex-direction:column;}
+  .dash-sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;align-items:center;}
+  .dash-brand{border-bottom:none;padding:14px 16px;}
+  .dash-nav{flex-direction:row;flex-wrap:wrap;padding:8px 12px 14px;}
+  .dash-sidebar-foot{margin-left:auto;border-top:none;display:flex;align-items:center;gap:10px;padding:14px 16px;}
+  .dash-user{margin-bottom:0;}
+  .dash-main{padding:20px 16px 50px;}
+}
+
+/* Registrant / attendance manager */
+.registrant-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--line);font-size:13.5px;flex-wrap:wrap;}
+.registrant-row:first-child{border-top:none;}
+.registrant-name{font-weight:700;color:var(--navy);min-width:140px;}
+.registrant-meta{color:var(--navy-soft);font-size:12.5px;flex:1;min-width:120px;}
+.check-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;padding:5px 10px;border-radius:999px;border:1.5px solid var(--line);color:var(--navy-soft);}
+.check-pill.on{background:#e6f6e6;border-color:#b7e2b7;color:#227722;}
+.check-pill.waitlist{background:#fff4e0;border-color:#f0d9a8;color:#a35a00;}
+
+/* Course cards (public) */
+.course-band{background:linear-gradient(120deg, rgba(146,62,251,0.06), rgba(0,106,253,0.05));border:1px solid var(--line);border-radius:20px;padding:26px;margin-bottom:32px;}
+.course-band .course-eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--purple);margin-bottom:8px;}
+.course-band h3{margin:0 0 8px;font-size:20px;}
+.course-band p{color:var(--navy-soft);font-size:14px;margin:0 0 16px;max-width:640px;}
+.course-steps{display:flex;flex-wrap:wrap;gap:10px;}
+.course-step{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:12.5px;display:flex;align-items:center;gap:8px;min-width:170px;}
+.course-step b{color:var(--navy);}
+.course-step-num{width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* Materials / recordings / feedback (program detail) */
+.resource-list{list-style:none;margin:0;padding:0;}
+.resource-list li{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;}
+.resource-list li:first-child{border-top:none;}
+.resource-list a{color:var(--blue);font-weight:600;text-decoration:none;}
+.resource-list a:hover{text-decoration:underline;}
+.star-row{display:flex;gap:4px;}
+.star-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--line);padding:0;line-height:1;}
+.star-btn.filled{color:var(--orange);}
+.feedback-item{border-top:1px solid var(--line);padding:12px 0;font-size:13.5px;}
+.feedback-item:first-child{border-top:none;}
+.feedback-item .stars-mini{color:var(--orange);font-size:12px;margin-bottom:4px;}
+
 /* Link-based nav (Next.js <Link> renders <a>, original design used <button>) */
 .navlinks a{text-decoration:none;background:none;border:none;font-family:'Inter';font-weight:600;font-size:14px;color:var(--navy-soft);padding:9px 16px;border-radius:999px;cursor:pointer;}
 .navlinks a.active,.navlinks a:hover{background:var(--navy);color:#fff;}

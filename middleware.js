@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
 
-// This middleware is the real access boundary for the Content Manager.
-// It runs server-side on every request to /console/* and /api/admin/*
-// BEFORE any page or API code executes, so an unauthenticated visitor
-// cannot reach admin markup or data even by guessing the URL — unlike the
-// old single-file prototype where the admin panel's HTML/JS shipped to
-// every visitor and was just hidden by client-side JS.
+// This middleware is the real access boundary for the Content Manager and
+// the Trainer Dashboard. It runs server-side on every request to
+// /console/*, /api/admin/*, /trainer/* and /api/trainer/* BEFORE any page
+// or API code executes, so an unauthenticated visitor cannot reach admin
+// or trainer markup/data even by guessing the URL — unlike the old
+// single-file prototype where the admin panel's HTML/JS shipped to every
+// visitor and was just hidden by client-side JS.
 //
 // The session-token verification logic is intentionally duplicated here
-// (rather than imported from lib/auth.js) because Vercel's Edge Function
-// bundler for the legacy "middleware" file convention rejects ANY
-// cross-file project import — "referencing unsupported modules" — even
-// when that file only uses edge-safe Web APIs. Keeping this file
-// self-contained (only importing "next/server") sidesteps that entirely.
-// lib/auth.js still holds the canonical version used by the Node-runtime
-// API routes (login/logout/me) — if the signing logic ever changes, both
-// copies need updating together.
+// (rather than imported from lib/auth.js / lib/trainerAuth.js) because
+// Vercel's Edge Function bundler for the legacy "middleware" file
+// convention rejects ANY cross-file project import — "referencing
+// unsupported modules" — even when that file only uses edge-safe Web
+// APIs. Keeping this file self-contained (only importing "next/server")
+// sidesteps that entirely. lib/auth.js and lib/trainerAuth.js still hold
+// the canonical versions used by the Node-runtime API routes — if the
+// signing logic ever changes, all copies need updating together.
 
-const SESSION_COOKIE_NAME = "vidyam_admin_session";
+const ADMIN_SESSION_COOKIE = "vidyam_admin_session";
+const TRAINER_SESSION_COOKIE = "vidyam_trainer_session";
 
 function getSecret() {
   return process.env.SESSION_SECRET || "dev-only-insecure-secret-change-me-in-production";
@@ -67,27 +69,39 @@ async function verifySessionToken(token) {
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  const isLoginPage = pathname === "/console/login";
+  const isAdminLoginPage = pathname === "/console/login";
   const isAdminApi = pathname.startsWith("/api/admin");
   const isConsole = pathname.startsWith("/console");
 
-  if (!isConsole && !isAdminApi) return NextResponse.next();
-  if (isLoginPage) return NextResponse.next();
+  const isTrainerLoginPage = pathname === "/trainer/login";
+  const isTrainerApi = pathname.startsWith("/api/trainer") && !pathname.startsWith("/api/trainer-auth");
+  const isTrainerArea = pathname.startsWith("/trainer");
 
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = await verifySessionToken(token);
-
-  if (!session) {
-    if (isAdminApi) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (isConsole || isAdminApi) {
+    if (isAdminLoginPage) return NextResponse.next();
+    const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+    const session = await verifySessionToken(token);
+    if (!session) {
+      if (isAdminApi) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.redirect(new URL("/console/login", request.url));
     }
-    const loginUrl = new URL("/console/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.next();
+  }
+
+  if (isTrainerArea || isTrainerApi) {
+    if (isTrainerLoginPage) return NextResponse.next();
+    const token = request.cookies.get(TRAINER_SESSION_COOKIE)?.value;
+    const session = await verifySessionToken(token);
+    if (!session) {
+      if (isTrainerApi) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.redirect(new URL("/trainer/login", request.url));
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/console/:path*", "/api/admin/:path*"],
+  matcher: ["/console/:path*", "/api/admin/:path*", "/trainer/:path*", "/api/trainer/:path*"],
 };

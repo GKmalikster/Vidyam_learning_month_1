@@ -2,13 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import DashShell from "../components/DashShell";
 
-const TABS = [
-  { id: "programs", label: "Programs" },
-  { id: "requests", label: "Session requests" },
-  { id: "trainers", label: "Trainers & mentors" },
-  { id: "categories", label: "Categories" },
-  { id: "registrations", label: "Registrations" },
+const NAV = [
+  { id: "programs", label: "Programs", icon: "🗓️" },
+  { id: "requests", label: "Session requests", icon: "📥" },
+  { id: "courses", label: "Courses", icon: "📚" },
+  { id: "trainers", label: "Trainers & mentors", icon: "🧑‍🏫" },
+  { id: "categories", label: "Categories", icon: "🏷️" },
+  { id: "registrants", label: "Registrants", icon: "👥" },
 ];
 
 const BRAND_PALETTE = ["#006afd", "#00cffe", "#923efb", "#fe8502", "#a7e318", "#0a1a4f"];
@@ -27,28 +29,29 @@ export default function ConsoleDashboard() {
   const [sessions, setSessions] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const refreshAll = useCallback(async () => {
-    const [me, s, t, c, r] = await Promise.all([
+    const [me, s, t, c, co, r] = await Promise.all([
       jsonFetch("/api/auth/me"),
       jsonFetch("/api/admin/sessions"),
       jsonFetch("/api/admin/trainers"),
       jsonFetch("/api/admin/categories"),
+      jsonFetch("/api/admin/courses"),
       jsonFetch("/api/admin/registrations"),
     ]);
     setAdmin(me.admin);
     setSessions(s);
     setTrainers(t);
     setCategories(c);
+    setCourses(co);
     setRegistrations(r);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    refreshAll();
-  }, [refreshAll]);
+  useEffect(() => { refreshAll(); }, [refreshAll]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -57,82 +60,80 @@ export default function ConsoleDashboard() {
 
   if (loading) return <div style={{ padding: 40 }}>Loading…</div>;
 
-  const approvedCount = sessions.filter((s) => s.status === "approved").length;
+  const liveCount = sessions.filter((s) => s.status === "approved").length;
   const pendingRequestCount = sessions.filter((s) => s.status === "pending" || s.status === "on_hold").length;
   const pendingTrainerCount = trainers.filter((t) => t.status === "pending").length;
+  const waitlistCount = registrations.filter((r) => r.waitlisted).length;
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 20px 60px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo.png" alt="Vidyam" style={{ height: 34 }} />
-          <b>Content Manager</b>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 13, color: "var(--navy-soft)" }}>
-          Signed in as <b>{admin?.name}</b>
-          <button className="pill pill-ghost" style={{ padding: "6px 14px", minHeight: "auto" }} onClick={logout}>Log out</button>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <MetricCard label="Live programs" value={approvedCount} />
-        <MetricCard label="Session requests waiting" value={pendingRequestCount} />
-        <MetricCard label="Trainer applications waiting" value={pendingTrainerCount} />
-        <MetricCard label="Registrations" value={registrations.length} />
-      </div>
-
-      <div className="navlinks" style={{ marginBottom: 20, borderBottom: "1px solid var(--line)", paddingBottom: 8 }}>
-        {TABS.map((t) => (
-          <a key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)} style={{ cursor: "pointer" }}>
-            {t.label}
-          </a>
-        ))}
-      </div>
-
-      {tab === "programs" && <ProgramsTab sessions={sessions} categories={categories} trainers={trainers} refresh={refreshAll} />}
-      {tab === "requests" && <RequestsTab sessions={sessions} trainers={trainers} refresh={refreshAll} />}
-      {tab === "trainers" && <TrainersTab trainers={trainers} categories={categories} refresh={refreshAll} />}
+    <DashShell
+      title="Content Manager"
+      subtitle="Vidyam Learning Month"
+      navItems={NAV.map((n) => ({
+        ...n,
+        badge: n.id === "requests" ? pendingRequestCount : n.id === "trainers" ? pendingTrainerCount : undefined,
+      }))}
+      activeId={tab}
+      onSelect={setTab}
+      userLabel={<>Signed in as <b style={{ color: "#fff" }}>{admin?.name}</b></>}
+      onLogout={logout}
+      stats={[
+        { label: "Live programs", value: liveCount },
+        { label: "Session requests waiting", value: pendingRequestCount },
+        { label: "Trainer applications waiting", value: pendingTrainerCount },
+        { label: "Registrations", value: registrations.length },
+        { label: "On waitlist", value: waitlistCount },
+      ]}
+    >
+      {tab === "programs" && <ProgramsTab sessions={sessions} categories={categories} trainers={trainers} courses={courses} refresh={refreshAll} />}
+      {tab === "requests" && <RequestsTab sessions={sessions} refresh={refreshAll} />}
+      {tab === "courses" && <CoursesTab courses={courses} categories={categories} sessions={sessions} refresh={refreshAll} />}
+      {tab === "trainers" && <TrainersTab trainers={trainers} refresh={refreshAll} />}
       {tab === "categories" && <CategoriesTab categories={categories} refresh={refreshAll} />}
-      {tab === "registrations" && <RegistrationsTab registrations={registrations} />}
-    </div>
-  );
-}
-
-function MetricCard({ label, value }) {
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 14, padding: "16px 18px" }}>
-      <div style={{ fontSize: 26, fontWeight: 800, color: "var(--navy)" }}>{value}</div>
-      <div style={{ fontSize: 12, color: "var(--navy-soft)" }}>{label}</div>
-    </div>
+      {tab === "registrants" && <RegistrantsTab sessions={sessions} registrations={registrations} refresh={refreshAll} />}
+    </DashShell>
   );
 }
 
 function Panel({ title, children }) {
   return (
-    <div className="panel" style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: 22, marginBottom: 20 }}>
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
+    <div className="panel">
+      <h3>{title}</h3>
       {children}
     </div>
   );
 }
 
 /* ---------------- Programs tab ---------------- */
-function ProgramsTab({ sessions, categories, trainers, refresh }) {
-  const [form, setForm] = useState({ title: "", categoryId: categories[0]?.id || "", brief: "", date: "", time: "", trainerId: "" });
+function ProgramsTab({ sessions, categories, trainers, courses, refresh }) {
+  const [form, setForm] = useState({ title: "", categoryId: categories[0]?.id || "", brief: "", date: "", time: "", trainerId: "", courseId: "", capacity: "" });
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("live");
+
   const live = sessions.filter((s) => s.status === "approved");
+  const past = sessions.filter((s) => s.status === "completed");
+  const archived = sessions.filter((s) => s.status === "archived");
+  const shown = filter === "live" ? live : filter === "past" ? past : archived;
 
   async function save() {
     setError("");
     if (!form.title.trim()) { setError("Title is required."); return; }
     try {
-      await jsonFetch("/api/admin/sessions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      setForm({ title: "", categoryId: categories[0]?.id || "", brief: "", date: "", time: "", trainerId: "" });
+      await jsonFetch("/api/admin/sessions", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, courseId: form.courseId || null, capacity: form.capacity ? Number(form.capacity) : null }),
+      });
+      setForm({ title: "", categoryId: categories[0]?.id || "", brief: "", date: "", time: "", trainerId: "", courseId: "", capacity: "" });
       refresh();
     } catch (e) { setError(e.message); }
   }
-  async function del(id) {
-    await jsonFetch(`/api/admin/sessions/${id}`, { method: "DELETE" });
+  async function del(id) { await jsonFetch(`/api/admin/sessions/${id}`, { method: "DELETE" }); refresh(); }
+  async function act(id, action, extra) {
+    await jsonFetch(`/api/admin/sessions/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...extra }) });
+    refresh();
+  }
+  async function assignCourse(id, courseId) {
+    await jsonFetch(`/api/admin/sessions/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ courseId: courseId || null }) });
     refresh();
   }
 
@@ -140,42 +141,75 @@ function ProgramsTab({ sessions, categories, trainers, refresh }) {
     <>
       <Panel title="Roll out a new program">
         {error && <div className="empty-note" style={{ borderColor: "#e0554a", color: "#c0392b", marginBottom: 14 }}>{error}</div>}
-        <div className="field"><label>Title *</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-        <div className="field">
-          <label>Category</label>
-          <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+        <div className="row2">
+          <div className="field"><label>Title *</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+          <div className="field">
+            <label>Category</label>
+            <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
         </div>
         <div className="field"><label>Brief</label><textarea value={form.brief} onChange={(e) => setForm({ ...form, brief: e.target.value })} /></div>
-        <div className="field"><label>Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
-        <div className="field"><label>Time</label><input value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} placeholder="e.g. 7:00 – 8:00 PM IST" /></div>
+        <div className="row2">
+          <div className="field"><label>Date</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+          <div className="field"><label>Time</label><input value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} placeholder="e.g. 7:00 – 8:00 PM IST" /></div>
+        </div>
+        <div className="row2">
+          <div className="field">
+            <label>Trainer</label>
+            <select value={form.trainerId} onChange={(e) => setForm({ ...form, trainerId: Number(e.target.value) })}>
+              <option value="">Unassigned</option>
+              {trainers.filter((t) => t.status === "approved").map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Capacity <span className="hint">(optional)</span></label>
+            <input type="number" min="1" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
+          </div>
+        </div>
         <div className="field">
-          <label>Trainer</label>
-          <select value={form.trainerId} onChange={(e) => setForm({ ...form, trainerId: Number(e.target.value) })}>
-            <option value="">Unassigned</option>
-            {trainers.filter((t) => t.status === "approved").map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          <label>Part of a course <span className="hint">(optional)</span></label>
+          <select value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })}>
+            <option value="">Standalone session</option>
+            {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
           </select>
         </div>
         <button className="pill pill-primary" onClick={save}>Publish program</button>
       </Panel>
 
-      <Panel title={`Live programs (${live.length})`}>
-        <p className="hint" style={{ display: "block", marginBottom: 12 }}>Trainer-proposed sessions go through the &quot;Session requests&quot; tab first — only approved, published programs show here and on the public site.</p>
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr><th align="left">Title</th><th align="left">Category</th><th align="left">Date</th><th align="left">Trainer</th><th /></tr></thead>
+      <Panel title="Programs">
+        <div className="consoletabs" style={{ marginBottom: 14 }}>
+          <button className={filter === "live" ? "active" : ""} onClick={() => setFilter("live")}>Live ({live.length})</button>
+          <button className={filter === "past" ? "active" : ""} onClick={() => setFilter("past")}>Completed ({past.length})</button>
+          <button className={filter === "archived" ? "active" : ""} onClick={() => setFilter("archived")}>Archived ({archived.length})</button>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th align="left">Title</th><th align="left">Category</th><th align="left">Date</th><th align="left">Trainer</th><th align="left">Registered</th><th align="left">Course</th><th /></tr></thead>
             <tbody>
-              {live.map((s) => (
-                <tr key={s.id} style={{ borderTop: "1px solid var(--line)" }}>
+              {shown.map((s) => (
+                <tr key={s.id}>
                   <td style={{ padding: "8px 4px" }}>{s.title}</td>
                   <td>{s.category_name}</td>
                   <td>{s.date} {s.time}</td>
                   <td>{s.trainer_name || "—"}</td>
-                  <td><button className="pill pill-ghost" style={{ padding: "4px 12px", minHeight: "auto" }} onClick={() => del(s.id)}>Delete</button></td>
+                  <td>{s.registered_count}{s.waitlist_count ? ` (+${s.waitlist_count} waitlist)` : ""}{s.capacity ? ` / ${s.capacity}` : ""}</td>
+                  <td>
+                    <select value={s.course_id || ""} onChange={(e) => assignCourse(s.id, e.target.value)} style={{ padding: "4px 6px", borderRadius: 6, border: "1px solid var(--line)", fontSize: 12 }}>
+                      <option value="">—</option>
+                      {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                    </select>
+                  </td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {filter === "live" && <button className="icon-btn good" onClick={() => act(s.id, "complete")}>Mark done</button>}
+                    {filter !== "archived" && <button className="icon-btn" onClick={() => act(s.id, "archive")}>Archive</button>}
+                    {filter === "archived" && <button className="icon-btn good" onClick={() => act(s.id, "restore")}>Restore</button>}
+                    <button className="icon-btn danger" onClick={() => del(s.id)}>Delete</button>
+                  </td>
                 </tr>
               ))}
-              {live.length === 0 && <tr><td colSpan={5} className="empty-note">No published programs yet.</td></tr>}
+              {shown.length === 0 && <tr><td colSpan={7} className="empty-note">Nothing here yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -210,10 +244,10 @@ function RequestsTab({ sessions, refresh }) {
 
   return (
     <Panel title={`Session requests (${pending.length})`}>
-      <p className="hint" style={{ display: "block", marginBottom: 14 }}>Trainers propose sessions with 3 possible time slots. Pick one to confirm and publish, or put the request on hold with a reason.</p>
+      <p className="hint" style={{ display: "block", marginBottom: 14 }}>Trainers propose sessions with 3 possible time slots — from the public apply form or their own dashboard. Pick one to confirm and publish, or put the request on hold with a reason.</p>
       {pending.length === 0 && <div className="empty-note">No session requests waiting on you right now.</div>}
       {pending.map((s) => (
-        <div key={s.id} className="proposal-card" style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+        <div key={s.id} className="proposal-card">
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <b>{s.title}</b>
             <span style={{ fontSize: 12, fontWeight: 700, color: s.status === "on_hold" ? "#c0392b" : "var(--navy-soft)" }}>{s.status === "on_hold" ? "ON HOLD" : "PENDING"}</span>
@@ -241,20 +275,86 @@ function RequestsTab({ sessions, refresh }) {
   );
 }
 
+/* ---------------- Courses tab ---------------- */
+function CoursesTab({ courses, categories, sessions, refresh }) {
+  const [form, setForm] = useState({ title: "", description: "", categoryId: categories[0]?.id || "" });
+  const [error, setError] = useState("");
+
+  async function create() {
+    setError("");
+    if (!form.title.trim()) { setError("Title is required."); return; }
+    try {
+      await jsonFetch("/api/admin/courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      setForm({ title: "", description: "", categoryId: categories[0]?.id || "" });
+      refresh();
+    } catch (e) { setError(e.message); }
+  }
+  async function setStatus(id, status) {
+    await jsonFetch(`/api/admin/courses/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    refresh();
+  }
+  async function del(id) { await jsonFetch(`/api/admin/courses/${id}`, { method: "DELETE" }); refresh(); }
+
+  return (
+    <>
+      <Panel title="Roll out a course (bundle of sessions)">
+        <p className="hint" style={{ display: "block", marginBottom: 14 }}>Create the course, then assign existing sessions to it from the Programs tab — use "Course order" if you want them numbered.</p>
+        {error && <div className="empty-note" style={{ borderColor: "#e0554a", color: "#c0392b", marginBottom: 14 }}>{error}</div>}
+        <div className="field"><label>Course title *</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+        <div className="field"><label>Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+        <div className="field">
+          <label>Category</label>
+          <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <button className="pill pill-primary" onClick={create}>Create course (draft)</button>
+      </Panel>
+
+      <Panel title={`All courses (${courses.length})`}>
+        {courses.map((c) => {
+          const attached = sessions.filter((s) => s.course_id === c.id);
+          return (
+            <div key={c.id} className="proposal-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <b>{c.title}</b>
+                <span className={`badge ${c.status === "published" ? "approved" : "pending"}`}>{c.status}</span>
+              </div>
+              <p style={{ fontSize: 13, color: "var(--navy-soft)" }}>{c.description}</p>
+              <div style={{ fontSize: 12.5, color: "var(--navy-soft)", marginBottom: 10 }}>{attached.length} session(s) attached</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {c.status !== "published" ? (
+                  <button className="pill pill-primary pill-sm" onClick={() => setStatus(c.id, "published")}>Publish</button>
+                ) : (
+                  <button className="pill pill-ghost pill-sm" onClick={() => setStatus(c.id, "draft")}>Unpublish</button>
+                )}
+                <button className="icon-btn danger" onClick={() => del(c.id)}>Delete</button>
+              </div>
+            </div>
+          );
+        })}
+        {courses.length === 0 && <div className="empty-note">No courses yet.</div>}
+      </Panel>
+    </>
+  );
+}
+
 /* ---------------- Trainers tab ---------------- */
-function TrainersTab({ trainers, categories, refresh }) {
+function TrainersTab({ trainers, refresh }) {
   const pending = trainers.filter((t) => t.status === "pending");
   const approved = trainers.filter((t) => t.status === "approved");
   const [form, setForm] = useState({ name: "", email: "", bio: "", mode: "" });
+  const [credModal, setCredModal] = useState(null);
 
   async function decide(id, status) {
-    await jsonFetch(`/api/admin/trainers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    const result = await jsonFetch(`/api/admin/trainers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    if (status === "approved" && result.tempPassword) {
+      const t = trainers.find((tr) => tr.id === id);
+      setCredModal({ name: t?.name, email: t?.email, tempPassword: result.tempPassword, emailSent: result.emailSent });
+    }
     refresh();
   }
-  async function del(id) {
-    await jsonFetch(`/api/admin/trainers/${id}`, { method: "DELETE" });
-    refresh();
-  }
+  async function del(id) { await jsonFetch(`/api/admin/trainers/${id}`, { method: "DELETE" }); refresh(); }
   async function addTrainer() {
     if (!form.name.trim()) return;
     await jsonFetch("/api/admin/trainers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
@@ -264,16 +364,33 @@ function TrainersTab({ trainers, categories, refresh }) {
 
   return (
     <>
+      {credModal && (
+        <div className="panel" style={{ borderColor: "var(--lime)", background: "#f7fdf0" }}>
+          <h3>Trainer dashboard access created</h3>
+          <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}>
+            {credModal.emailSent
+              ? <>An email with login details was sent to <b>{credModal.email}</b>.</>
+              : <>Email sending isn't configured yet — share these details with <b>{credModal.name}</b> yourself:</>}
+          </p>
+          <div style={{ fontSize: 14, fontFamily: "monospace", background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
+            Login: /trainer/login<br />Email: {credModal.email}<br />Temporary password: <b>{credModal.tempPassword}</b>
+          </div>
+          <button className="pill pill-ghost pill-sm" onClick={() => setCredModal(null)}>Dismiss</button>
+        </div>
+      )}
+
       <Panel title={`Pending applications (${pending.length})`}>
         {pending.length === 0 && <div className="empty-note">No pending trainer applications right now.</div>}
         {pending.map((t) => (
-          <div key={t.id} style={{ borderBottom: "1px solid var(--line)", padding: "10px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-            <div>
-              <b>{t.name}</b> — <span style={{ fontSize: 13, color: "var(--navy-soft)" }}>{t.bio}</span>
+          <div key={t.id} className="registrant-row" style={{ padding: "12px 4px" }}>
+            <div style={{ minWidth: 220 }}>
+              <b style={{ color: "var(--navy)" }}>{t.name}</b>
+              <div className="registrant-meta">{t.email} · {t.years ? `${t.years} yrs · ` : ""}{t.mode}</div>
             </div>
+            <div className="registrant-meta" style={{ flex: 2 }}>{t.bio}</div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <button className="pill pill-primary" style={{ padding: "6px 14px", minHeight: "auto" }} onClick={() => decide(t.id, "approved")}>Approve</button>
-              <button className="pill pill-ghost" style={{ padding: "6px 14px", minHeight: "auto" }} onClick={() => decide(t.id, "rejected")}>Reject</button>
+              <button className="pill pill-primary pill-sm" onClick={() => decide(t.id, "approved")}>Approve</button>
+              <button className="pill pill-ghost pill-sm" onClick={() => decide(t.id, "rejected")}>Reject</button>
             </div>
           </div>
         ))}
@@ -283,19 +400,19 @@ function TrainersTab({ trainers, categories, refresh }) {
         <div className="field"><label>Full name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
         <div className="field"><label>Email</label><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
         <div className="field"><label>Bio</label><textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></div>
-        <button className="pill pill-primary" onClick={addTrainer}>Add trainer</button>
+        <button className="pill pill-primary" onClick={addTrainer}>Add trainer (pre-approved, no dashboard login)</button>
       </Panel>
 
       <Panel title={`Approved trainers & mentors (${approved.length})`}>
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="table-scroll">
+          <table>
             <thead><tr><th align="left">Name</th><th align="left">Mode</th><th /></tr></thead>
             <tbody>
               {approved.map((t) => (
-                <tr key={t.id} style={{ borderTop: "1px solid var(--line)" }}>
+                <tr key={t.id}>
                   <td style={{ padding: "8px 4px" }}>{t.name}</td>
                   <td>{t.mode}</td>
-                  <td><button className="pill pill-ghost" style={{ padding: "4px 12px", minHeight: "auto" }} onClick={() => del(t.id)}>Delete</button></td>
+                  <td><button className="icon-btn danger" onClick={() => del(t.id)}>Delete</button></td>
                 </tr>
               ))}
               {approved.length === 0 && <tr><td colSpan={3} className="empty-note">No approved trainers yet.</td></tr>}
@@ -314,16 +431,8 @@ function CategoriesTab({ categories, refresh }) {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
 
-  function startEdit(c) {
-    setEditingId(c.id);
-    setName(c.name);
-    setColor(c.color);
-  }
-  function cancelEdit() {
-    setEditingId(null);
-    setName("");
-    setColor(BRAND_PALETTE[0]);
-  }
+  function startEdit(c) { setEditingId(c.id); setName(c.name); setColor(c.color); }
+  function cancelEdit() { setEditingId(null); setName(""); setColor(BRAND_PALETTE[0]); }
 
   async function save() {
     setError("");
@@ -340,10 +449,8 @@ function CategoriesTab({ categories, refresh }) {
   }
   async function del(id) {
     setError("");
-    try {
-      await jsonFetch(`/api/admin/categories/${id}`, { method: "DELETE" });
-      refresh();
-    } catch (e) { setError(e.message); }
+    try { await jsonFetch(`/api/admin/categories/${id}`, { method: "DELETE" }); refresh(); }
+    catch (e) { setError(e.message); }
   }
 
   return (
@@ -353,13 +460,9 @@ function CategoriesTab({ categories, refresh }) {
         <div className="field"><label>Category name *</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
         <div className="field">
           <label>Colour</label>
-          <div className="swatch-row" style={{ display: "flex", gap: 8 }}>
+          <div className="swatch-row">
             {BRAND_PALETTE.map((c) => (
-              <div
-                key={c}
-                onClick={() => setColor(c)}
-                style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid var(--navy)" : "3px solid transparent" }}
-              />
+              <div key={c} className={`swatch ${color === c ? "selected" : ""}`} style={{ background: c }} onClick={() => setColor(c)} />
             ))}
           </div>
         </div>
@@ -368,20 +471,17 @@ function CategoriesTab({ categories, refresh }) {
       </Panel>
 
       <Panel title={`All categories (${categories.length})`}>
-        <div className="table-scroll" style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="table-scroll">
+          <table>
             <thead><tr><th align="left">Category</th><th align="left">Programs using it</th><th /></tr></thead>
             <tbody>
               {categories.map((c) => (
-                <tr key={c.id} style={{ borderTop: "1px solid var(--line)" }}>
-                  <td style={{ padding: "8px 4px" }}>
-                    <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: c.color, marginRight: 8 }} />
-                    {c.name}
-                  </td>
+                <tr key={c.id}>
+                  <td style={{ padding: "8px 4px" }}><span className="cat-dot" style={{ background: c.color }} />{c.name}</td>
                   <td>{c.usage}</td>
-                  <td style={{ display: "flex", gap: 8 }}>
-                    <button className="pill pill-ghost" style={{ padding: "4px 12px", minHeight: "auto" }} onClick={() => startEdit(c)}>Edit</button>
-                    <button className="pill pill-ghost" style={{ padding: "4px 12px", minHeight: "auto" }} onClick={() => del(c.id)}>Delete</button>
+                  <td>
+                    <button className="icon-btn" onClick={() => startEdit(c)}>Edit</button>
+                    <button className="icon-btn danger" onClick={() => del(c.id)}>Delete</button>
                   </td>
                 </tr>
               ))}
@@ -393,28 +493,70 @@ function CategoriesTab({ categories, refresh }) {
   );
 }
 
-/* ---------------- Registrations tab ---------------- */
-function RegistrationsTab({ registrations }) {
+/* ---------------- Registrants tab ---------------- */
+function RegistrantsTab({ sessions, registrations, refresh }) {
+  const sessionsWithRegs = sessions.filter((s) => registrations.some((r) => r.session_id === s.id));
+  const [openId, setOpenId] = useState(sessionsWithRegs[0]?.id || null);
+
+  async function toggle(id, field, value) {
+    await jsonFetch(`/api/admin/registrations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [field]: value }) });
+    refresh();
+  }
+
+  function exportCsv(sessionId, title) {
+    const rows = registrations.filter((r) => r.session_id === sessionId);
+    const header = ["Name", "Email", "Phone", "City", "Role", "Attended", "Waitlisted"];
+    const lines = [header.join(",")].concat(
+      rows.map((r) => [r.name, r.email, r.phone, r.city, r.role, r.attended ? "yes" : "no", r.waitlisted ? "yes" : "no"]
+        .map((v) => `"${String(v || "").replace(/"/g, '""')}"`).join(","))
+    );
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-registrants.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <Panel title={`Learner registrations (${registrations.length})`}>
-      <p className="hint" style={{ display: "block", marginBottom: 12 }}>One row per program a learner registered for.</p>
-      <div className="table-scroll" style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><th align="left">Name</th><th align="left">Email</th><th align="left">Program</th><th align="left">City</th><th align="left">Role</th></tr></thead>
-          <tbody>
-            {registrations.map((r) => (
-              <tr key={r.id} style={{ borderTop: "1px solid var(--line)" }}>
-                <td style={{ padding: "8px 4px" }}>{r.name}</td>
-                <td>{r.email}</td>
-                <td>{r.session_title || "—"}</td>
-                <td>{r.city}</td>
-                <td>{r.role}</td>
-              </tr>
-            ))}
-            {registrations.length === 0 && <tr><td colSpan={5} className="empty-note">No registrations yet.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+    <Panel title={`Registrants by session (${registrations.length} total registrations)`}>
+      {sessionsWithRegs.length === 0 && <div className="empty-note">No registrations yet.</div>}
+      {sessionsWithRegs.map((s) => {
+        const rows = registrations.filter((r) => r.session_id === s.id);
+        const confirmed = rows.filter((r) => !r.waitlisted).length;
+        const waitlisted = rows.filter((r) => r.waitlisted).length;
+        return (
+          <div key={s.id} className="proposal-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <b>{s.title}</b>
+                <div className="hint">{confirmed} confirmed{waitlisted ? `, ${waitlisted} waitlisted` : ""}{s.capacity ? ` · capacity ${s.capacity}` : ""}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="pill pill-ghost pill-sm" onClick={() => exportCsv(s.id, s.title)}>Export CSV</button>
+                <button className="pill pill-ghost pill-sm" onClick={() => setOpenId(openId === s.id ? null : s.id)}>{openId === s.id ? "Collapse" : "Expand"}</button>
+              </div>
+            </div>
+            {openId === s.id && (
+              <div style={{ marginTop: 12 }}>
+                {rows.map((r) => (
+                  <div key={r.id} className="registrant-row">
+                    <span className="registrant-name">{r.name}</span>
+                    <span className="registrant-meta">{r.email} {r.city ? `· ${r.city}` : ""} {r.role ? `· ${r.role}` : ""}</span>
+                    <span className={`check-pill ${r.waitlisted ? "waitlist" : ""}`} onClick={() => toggle(r.id, "waitlisted", !r.waitlisted)}>
+                      {r.waitlisted ? "Waitlisted — promote" : "Confirmed"}
+                    </span>
+                    <span className={`check-pill ${r.attended ? "on" : ""}`} onClick={() => toggle(r.id, "attended", !r.attended)}>
+                      {r.attended ? "Attended ✓" : "Mark attended"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </Panel>
   );
 }

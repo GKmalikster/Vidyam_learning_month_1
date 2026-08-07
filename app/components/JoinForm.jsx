@@ -14,6 +14,7 @@ export default function JoinForm({ sessions, categories }) {
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [waitlistedFor, setWaitlistedFor] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [profile, setProfile] = useState({
     name: "", email: "", phone: "", city: "", ageGroup: "", role: "",
@@ -53,6 +54,8 @@ export default function JoinForm({ sessions, categories }) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Something went wrong. Please try again.");
       }
+      const result = await res.json();
+      setWaitlistedFor(result.waitlistedFor || []);
       setSuccess(true);
     } catch (e) {
       setError(e.message);
@@ -68,6 +71,11 @@ export default function JoinForm({ sessions, categories }) {
         <p style={{ color: "var(--navy-soft)" }}>
           You&apos;re registered for {selectedSessions.length} program{selectedSessions.length > 1 ? "s" : ""}. We&apos;ll be in touch with joining details closer to each session.
         </p>
+        {waitlistedFor.length > 0 && (
+          <p style={{ color: "var(--orange-deep)", fontWeight: 600 }}>
+            {waitlistedFor.length} of these {waitlistedFor.length > 1 ? "are" : "is"} full right now, so you&apos;ve been added to the waitlist — we&apos;ll notify you if a spot opens up.
+          </p>
+        )}
       </div>
     );
   }

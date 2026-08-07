@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 
-// PATCH covers: plain edits, "approve with a chosen slot", and
-// "put on hold with a required reason" — all driven by which fields the
-// console UI sends.
-//   { action: "approve", slotIndex }  -> publishes using that slot's date/time
-//   { action: "hold", holdReason }    -> requires a non-empty reason
-//   { title, categoryId, brief, ... } -> plain field edit
+// PATCH covers the full session lifecycle plus plain edits — all driven by
+// which fields the console UI sends.
+//   { action: "approve", slotIndex }   -> publishes using that slot's date/time
+//   { action: "hold", holdReason }     -> requires a non-empty reason
+//   { action: "complete", recordingUrl } -> status -> completed, moves to "Past programs"
+//   { action: "archive" }              -> status -> archived, hidden everywhere public
+//   { action: "restore" }              -> status -> approved (undo archive/complete)
+//   { title, categoryId, brief, ... }  -> plain field edit (also covers
+//                                          courseId/courseOrder/capacity)
 export async function PATCH(request, { params }) {
   const { id } = await params;
   const body = await request.json();
@@ -32,6 +35,21 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ ok: true });
   }
 
+  if (body.action === "complete") {
+    await db.query("UPDATE sessions SET status='completed', recording_url=$1 WHERE id=$2", [body.recordingUrl ?? existing.recording_url, id]);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "archive") {
+    await db.query("UPDATE sessions SET status='archived' WHERE id=$1", [id]);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "restore") {
+    await db.query("UPDATE sessions SET status='approved' WHERE id=$1", [id]);
+    return NextResponse.json({ ok: true });
+  }
+
   const merged = {
     title: body.title ?? existing.title,
     category_id: body.categoryId ?? existing.category_id,
@@ -39,10 +57,15 @@ export async function PATCH(request, { params }) {
     date: body.date ?? existing.date,
     time: body.time ?? existing.time,
     trainer_id: body.trainerId ?? existing.trainer_id,
+    course_id: body.courseId !== undefined ? body.courseId : existing.course_id,
+    course_order: body.courseOrder ?? existing.course_order,
+    capacity: body.capacity !== undefined ? body.capacity : existing.capacity,
   };
   await db.query(
-    `UPDATE sessions SET title=$1, category_id=$2, brief=$3, date=$4, time=$5, trainer_id=$6 WHERE id=$7`,
-    [merged.title, merged.category_id, merged.brief, merged.date, merged.time, merged.trainer_id, id]
+    `UPDATE sessions SET title=$1, category_id=$2, brief=$3, date=$4, time=$5, trainer_id=$6,
+     course_id=$7, course_order=$8, capacity=$9 WHERE id=$10`,
+    [merged.title, merged.category_id, merged.brief, merged.date, merged.time, merged.trainer_id,
+     merged.course_id, merged.course_order, merged.capacity, id]
   );
   return NextResponse.json({ ok: true });
 }
