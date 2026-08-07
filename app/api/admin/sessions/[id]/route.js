@@ -3,7 +3,15 @@ import db from "@/lib/db";
 
 // PATCH covers the full session lifecycle plus plain edits — all driven by
 // which fields the console UI sends.
-//   { action: "approve", slotIndex }   -> publishes using that slot's date/time
+//   { action: "approve", slotIndices, capacity?, courseId? }
+//                                       -> publishes using the selected slot(s)' date/time.
+//                                          A trainer proposes 3 candidate slots; the admin can
+//                                          approve more than one, which turns the single request
+//                                          into that many published sessions (the request's own
+//                                          row becomes the first slot, additional slots are cloned
+//                                          as new session rows with the same title/category/brief/
+//                                          trainer). Optional capacity/courseId apply to all of them.
+//                                          `slotIndex` (singular) is still accepted for old callers.
 //   { action: "hold", holdReason }     -> requires a non-empty reason
 //   { action: "complete", recordingUrl } -> status -> completed, moves to "Past programs"
 //   { action: "archive" }              -> status -> archived, hidden everywhere public
@@ -18,13 +26,35 @@ export async function PATCH(request, { params }) {
 
   if (body.action === "approve") {
     const slots = JSON.parse(existing.slots || "[]");
-    const slot = slots[body.slotIndex];
-    if (!slot) return NextResponse.json({ error: "Pick a valid time slot before approving" }, { status: 400 });
+    const indices = Array.isArray(body.slotIndices) ? body.slotIndices : (body.slotIndex !== undefined ? [body.slotIndex] : []);
+    const chosen = indices.map((i) => slots[i]).filter(Boolean);
+    if (chosen.length === 0) return NextResponse.json({ error: "Pick a valid time slot before approving" }, { status: 400 });
+
+    // Preserve whatever capacity/course the session already had (e.g. set by
+    // the trainer when proposing it, or on an earlier partial approval)
+    // unless the admin explicitly supplies a new value here.
+    const capacity = body.capacity !== undefined && body.capacity !== null && body.capacity !== "" ? Number(body.capacity) : existing.capacity;
+    const courseId = body.courseId !== undefined ? (body.courseId || null) : existing.course_id;
+
+    // First chosen slot updates the original request row in place.
     await db.query(
-      "UPDATE sessions SET status='approved', date=$1, time=$2, hold_reason='' WHERE id=$3",
-      [slot.date, slot.time, id]
+      "UPDATE sessions SET status='approved', date=$1, time=$2, hold_reason='', capacity=$3, course_id=$4 WHERE id=$5",
+      [chosen[0].date, chosen[0].time, capacity, courseId, id]
     );
-    return NextResponse.json({ ok: true });
+    const createdIds = [Number(id)];
+
+    // Any additional chosen slots become independent published sessions,
+    // cloned from the same proposal (title/category/brief/trainer).
+    for (const slot of chosen.slice(1)) {
+      const row = await db.queryOne(
+        `INSERT INTO sessions (title, category_id, brief, date, time, trainer_id, status, slots, capacity, course_id)
+         VALUES ($1,$2,$3,$4,$5,$6,'approved','[]',$7,$8) RETURNING id`,
+        [existing.title, existing.category_id, existing.brief, slot.date, slot.time, existing.trainer_id, capacity, courseId]
+      );
+      createdIds.push(row.id);
+    }
+
+    return NextResponse.json({ ok: true, createdIds });
   }
 
   if (body.action === "hold") {

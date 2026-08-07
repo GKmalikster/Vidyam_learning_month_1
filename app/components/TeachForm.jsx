@@ -13,7 +13,7 @@ function blankProposal(defaultCategoryId) {
 
 export default function TeachForm({ categories }) {
   const [profile, setProfile] = useState({
-    name: "", email: "", years: "", bio: "", topics: "", mode: "", linkedin: "", motivation: "",
+    name: "", email: "", password: "", confirmPassword: "", years: "", bio: "", topics: "", mode: "", linkedin: "", motivation: "",
   });
   const [expertise, setExpertise] = useState([]);
   const [availability, setAvailability] = useState([]);
@@ -70,6 +70,14 @@ export default function TeachForm({ categories }) {
       setError("Name and email are required.");
       return;
     }
+    if (!profile.password || profile.password.length < 8) {
+      setError("Please choose a password of at least 8 characters.");
+      return;
+    }
+    if (profile.password !== profile.confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
     const touched = proposals.filter(isTouched);
     if (touched.some((p) => !isComplete(p))) {
       setError("Each session you start needs a title, category, brief, and all 3 proposed time slots — or remove it.");
@@ -78,10 +86,11 @@ export default function TeachForm({ categories }) {
 
     setSubmitting(true);
     try {
+      const { confirmPassword, ...profileToSend } = profile;
       const res = await fetch("/api/trainers/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...profile, expertise, availability, photo, proposals: touched }),
+        body: JSON.stringify({ ...profileToSend, expertise, availability, photo, proposals: touched }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -100,7 +109,7 @@ export default function TeachForm({ categories }) {
       <div className="form-card" style={{ margin: "0 auto 56px", textAlign: "center" }}>
         <h2>Thanks for stepping up! 🙌</h2>
         <p style={{ color: "var(--navy-soft)" }}>
-          Your application{proposals.filter(isTouched).length > 0 ? " and proposed session(s) are" : " is"} with the Vidyam team for review. We&apos;ll be in touch soon.
+          Your application{proposals.filter(isTouched).length > 0 ? " and proposed session(s) are" : " is"} with the Vidyam team for review. We&apos;ll email you as soon as you&apos;re approved — then you can sign in to your trainer dashboard with the password you just set.
         </p>
       </div>
     );
@@ -112,6 +121,12 @@ export default function TeachForm({ categories }) {
 
       <div className="field"><label>Full name *</label><input type="text" value={profile.name} onChange={(e) => update("name", e.target.value)} /></div>
       <div className="field"><label>Email *</label><input type="email" value={profile.email} onChange={(e) => update("email", e.target.value)} /></div>
+
+      <div className="field-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="field"><label>Create a password *</label><input type="password" value={profile.password} onChange={(e) => update("password", e.target.value)} /></div>
+        <div className="field"><label>Confirm password *</label><input type="password" value={profile.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} /></div>
+      </div>
+      <p className="hint" style={{ display: "block", marginTop: -12, marginBottom: 18 }}>At least 8 characters. This is how you'll sign in to your trainer dashboard once we approve your application — no need to wait for a separate email with a temp password.</p>
 
       <div className="field">
         <label>Your photo <span className="hint">(shown on your trainer profile)</span></label>

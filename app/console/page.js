@@ -86,9 +86,9 @@ export default function ConsoleDashboard() {
       ]}
     >
       {tab === "programs" && <ProgramsTab sessions={sessions} categories={categories} trainers={trainers} courses={courses} refresh={refreshAll} />}
-      {tab === "requests" && <RequestsTab sessions={sessions} refresh={refreshAll} />}
-      {tab === "courses" && <CoursesTab courses={courses} categories={categories} sessions={sessions} refresh={refreshAll} />}
-      {tab === "trainers" && <TrainersTab trainers={trainers} refresh={refreshAll} />}
+      {tab === "requests" && <RequestsTab sessions={sessions} courses={courses} refresh={refreshAll} />}
+      {tab === "courses" && <CoursesTab courses={courses} categories={categories} sessions={sessions} trainers={trainers} refresh={refreshAll} />}
+      {tab === "trainers" && <TrainersTab trainers={trainers} categories={categories} courses={courses} refresh={refreshAll} />}
       {tab === "categories" && <CategoriesTab categories={categories} refresh={refreshAll} />}
       {tab === "registrants" && <RegistrantsTab sessions={sessions} registrations={registrations} refresh={refreshAll} />}
     </DashShell>
@@ -219,17 +219,33 @@ function ProgramsTab({ sessions, categories, trainers, courses, refresh }) {
 }
 
 /* ---------------- Session requests tab ---------------- */
-function RequestsTab({ sessions, refresh }) {
+function RequestsTab({ sessions, courses, refresh }) {
   const pending = sessions.filter((s) => s.status === "pending" || s.status === "on_hold");
-  const [slotChoice, setSlotChoice] = useState({});
+  const [slotChoice, setSlotChoice] = useState({}); // { [sessionId]: number[] }
+  const [extra, setExtra] = useState({}); // { [sessionId]: { capacity, courseId } }
   const [holdReason, setHoldReason] = useState({});
   const [errors, setErrors] = useState({});
 
+  function toggleSlot(id, i) {
+    setSlotChoice((sc) => {
+      const current = sc[id] || [];
+      const next = current.includes(i) ? current.filter((x) => x !== i) : [...current, i];
+      return { ...sc, [id]: next };
+    });
+  }
+  function setField(id, field, value) {
+    setExtra((ex) => ({ ...ex, [id]: { ...ex[id], [field]: value } }));
+  }
+
   async function approve(id) {
-    const slotIndex = slotChoice[id];
-    if (slotIndex === undefined) { setErrors((e) => ({ ...e, [id]: "Pick a time slot before approving." })); return; }
+    const slotIndices = slotChoice[id] || [];
+    if (slotIndices.length === 0) { setErrors((e) => ({ ...e, [id]: "Pick at least one time slot before approving." })); return; }
+    const { capacity, courseId } = extra[id] || {};
     try {
-      await jsonFetch(`/api/admin/sessions/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve", slotIndex }) });
+      await jsonFetch(`/api/admin/sessions/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve", slotIndices, capacity: capacity || null, courseId: courseId || null }),
+      });
       refresh();
     } catch (e) { setErrors((er) => ({ ...er, [id]: e.message })); }
   }
@@ -244,9 +260,11 @@ function RequestsTab({ sessions, refresh }) {
 
   return (
     <Panel title={`Session requests (${pending.length})`}>
-      <p className="hint" style={{ display: "block", marginBottom: 14 }}>Trainers propose sessions with 3 possible time slots — from the public apply form or their own dashboard. Pick one to confirm and publish, or put the request on hold with a reason.</p>
+      <p className="hint" style={{ display: "block", marginBottom: 14 }}>Trainers propose sessions with 3 possible time slots — from the public apply form or their own dashboard. Check off one or more slots to publish that many sessions from a single request (handy for a recurring program), optionally set a capacity and attach them to a course, or put the request on hold with a reason.</p>
       {pending.length === 0 && <div className="empty-note">No session requests waiting on you right now.</div>}
-      {pending.map((s) => (
+      {pending.map((s) => {
+        const chosenCount = (slotChoice[s.id] || []).length;
+        return (
         <div key={s.id} className="proposal-card">
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <b>{s.title}</b>
@@ -259,33 +277,54 @@ function RequestsTab({ sessions, refresh }) {
           <div style={{ marginBottom: 10 }}>
             {s.slots.map((slot, i) => (
               <label key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 13 }}>
-                <input type="radio" name={`slot-${s.id}`} checked={slotChoice[s.id] === i} onChange={() => setSlotChoice((sc) => ({ ...sc, [s.id]: i }))} />
+                <input type="checkbox" checked={(slotChoice[s.id] || []).includes(i)} onChange={() => toggleSlot(s.id, i)} />
                 {slot.date} · {slot.time}
               </label>
             ))}
           </div>
+          <div className="row2" style={{ marginBottom: 10 }}>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Capacity <span className="hint">(optional, applies to each published session)</span></label>
+              <input type="number" min="1" value={extra[s.id]?.capacity || ""} onChange={(e) => setField(s.id, "capacity", e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Part of a course <span className="hint">(optional)</span></label>
+              <select value={extra[s.id]?.courseId || ""} onChange={(e) => setField(s.id, "courseId", e.target.value)}>
+                <option value="">Standalone session</option>
+                {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button className="pill pill-primary" onClick={() => approve(s.id)}>Approve &amp; publish</button>
+            <button className="pill pill-primary" onClick={() => approve(s.id)}>
+              {chosenCount > 1 ? `Approve & publish ${chosenCount} sessions` : "Approve & publish"}
+            </button>
             <input placeholder="Reason for hold" value={holdReason[s.id] || ""} onChange={(e) => setHoldReason((h) => ({ ...h, [s.id]: e.target.value }))} style={{ flex: 1, minWidth: 160, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)" }} />
             <button className="pill pill-ghost" onClick={() => hold(s.id)}>Put on hold</button>
           </div>
         </div>
-      ))}
+        );
+      })}
     </Panel>
   );
 }
 
 /* ---------------- Courses tab ---------------- */
-function CoursesTab({ courses, categories, sessions, refresh }) {
+function CoursesTab({ courses, categories, sessions, trainers, refresh }) {
   const [form, setForm] = useState({ title: "", description: "", categoryId: categories[0]?.id || "" });
+  const [sessionRows, setSessionRows] = useState([]);
   const [error, setError] = useState("");
 
   async function create() {
     setError("");
     if (!form.title.trim()) { setError("Title is required."); return; }
     try {
-      await jsonFetch("/api/admin/courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const sessionsPayload = sessionRows
+        .filter((r) => r.title.trim())
+        .map((r) => ({ title: r.title, categoryId: r.categoryId || null, brief: r.brief, date: r.date, time: r.time, capacity: r.capacity || null, trainerId: r.linkId || null }));
+      await jsonFetch("/api/admin/courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, sessions: sessionsPayload }) });
       setForm({ title: "", description: "", categoryId: categories[0]?.id || "" });
+      setSessionRows([]);
       refresh();
     } catch (e) { setError(e.message); }
   }
@@ -298,7 +337,7 @@ function CoursesTab({ courses, categories, sessions, refresh }) {
   return (
     <>
       <Panel title="Roll out a course (bundle of sessions)">
-        <p className="hint" style={{ display: "block", marginBottom: 14 }}>Create the course, then assign existing sessions to it from the Programs tab — use "Course order" if you want them numbered.</p>
+        <p className="hint" style={{ display: "block", marginBottom: 14 }}>Create the course and its session(s) together here, or just create the course and assign existing sessions to it from the Programs tab later — use "Course order" if you want them numbered.</p>
         {error && <div className="empty-note" style={{ borderColor: "#e0554a", color: "#c0392b", marginBottom: 14 }}>{error}</div>}
         <div className="field"><label>Course title *</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
         <div className="field"><label>Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
@@ -308,7 +347,13 @@ function CoursesTab({ courses, categories, sessions, refresh }) {
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <button className="pill pill-primary" onClick={create}>Create course (draft)</button>
+
+        <div style={{ borderTop: "1px solid var(--line)", margin: "18px 0 12px" }} />
+        <b style={{ fontSize: 13.5 }}>Session(s) for this course</b>
+        <p className="hint" style={{ display: "block", margin: "4px 0 0" }}>Optional — same fields as "Roll out a new program," so this course can go live with its sessions in one step.</p>
+        <ProgramRowsEditor rows={sessionRows} setRows={setSessionRows} categories={categories} linkOptions={trainers.filter((t) => t.status === "approved")} linkLabel="Trainer (optional)" />
+
+        <button className="pill pill-primary" style={{ marginTop: 16 }} onClick={create}>Create course (draft)</button>
       </Panel>
 
       <Panel title={`All courses (${courses.length})`}>
@@ -339,17 +384,75 @@ function CoursesTab({ courses, categories, sessions, refresh }) {
   );
 }
 
+// Shared repeatable "program row" editor used by both the "Add a trainer
+// directly" form (trainer is implicit, pick a course per row) and the
+// "Roll out a course" form (course is implicit, pick a trainer per row).
+// Each row carries the same fields as "Roll out a new program" on the
+// Programs tab, so either shortcut form can fully stand in for it.
+function blankProgramRow(defaultCategoryId) {
+  return { title: "", categoryId: defaultCategoryId || "", brief: "", date: "", time: "", capacity: "", linkId: "" };
+}
+function ProgramRowsEditor({ rows, setRows, categories, linkOptions, linkLabel }) {
+  function update(i, field, value) { setRows((r) => r.map((row, idx) => (idx === i ? { ...row, [field]: value } : row))); }
+  function add() { setRows((r) => [...r, blankProgramRow(categories[0]?.id)]); }
+  function remove(i) { setRows((r) => r.filter((_, idx) => idx !== i)); }
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      {rows.map((row, i) => (
+        <div key={i} className="proposal-card" style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <b style={{ fontSize: 13 }}>Program {i + 1}</b>
+            {rows.length > 1 && <button type="button" className="pill pill-ghost pill-sm" onClick={() => remove(i)}>Remove</button>}
+          </div>
+          <div className="row2">
+            <div className="field"><label>Title</label><input value={row.title} onChange={(e) => update(i, "title", e.target.value)} /></div>
+            <div className="field">
+              <label>Category</label>
+              <select value={row.categoryId} onChange={(e) => update(i, "categoryId", Number(e.target.value))}>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="field"><label>Brief</label><textarea value={row.brief} onChange={(e) => update(i, "brief", e.target.value)} /></div>
+          <div className="row2">
+            <div className="field"><label>Date</label><input type="date" value={row.date} onChange={(e) => update(i, "date", e.target.value)} /></div>
+            <div className="field"><label>Time</label><input value={row.time} onChange={(e) => update(i, "time", e.target.value)} placeholder="e.g. 7:00 – 8:00 PM IST" /></div>
+          </div>
+          <div className="row2">
+            <div className="field">
+              <label>Capacity <span className="hint">(optional)</span></label>
+              <input type="number" min="1" value={row.capacity} onChange={(e) => update(i, "capacity", e.target.value)} />
+            </div>
+            <div className="field">
+              <label>{linkLabel}</label>
+              <select value={row.linkId} onChange={(e) => update(i, "linkId", e.target.value)}>
+                <option value="">{linkLabel.startsWith("Course") ? "Standalone session" : "Unassigned"}</option>
+                {linkOptions.map((o) => <option key={o.id} value={o.id}>{o.title || o.name}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+      ))}
+      <button type="button" className="pill pill-ghost pill-sm" onClick={add}>+ Add another program</button>
+    </div>
+  );
+}
+
 /* ---------------- Trainers tab ---------------- */
-function TrainersTab({ trainers, refresh }) {
+function TrainersTab({ trainers, categories, courses, refresh }) {
   const pending = trainers.filter((t) => t.status === "pending");
   const approved = trainers.filter((t) => t.status === "approved");
   const [form, setForm] = useState({ name: "", email: "", bio: "", mode: "" });
+  const [programRows, setProgramRows] = useState([]);
   const [credModal, setCredModal] = useState(null);
 
   async function decide(id, status) {
     const result = await jsonFetch(`/api/admin/trainers/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-    if (status === "approved" && result.tempPassword) {
+    if (status === "approved") {
       const t = trainers.find((tr) => tr.id === id);
+      // tempPassword is only present for legacy/console-added trainers who
+      // hadn't already set their own password on the /teach form.
       setCredModal({ name: t?.name, email: t?.email, tempPassword: result.tempPassword, emailSent: result.emailSent });
     }
     refresh();
@@ -357,8 +460,12 @@ function TrainersTab({ trainers, refresh }) {
   async function del(id) { await jsonFetch(`/api/admin/trainers/${id}`, { method: "DELETE" }); refresh(); }
   async function addTrainer() {
     if (!form.name.trim()) return;
-    await jsonFetch("/api/admin/trainers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    const programs = programRows
+      .filter((r) => r.title.trim())
+      .map((r) => ({ title: r.title, categoryId: r.categoryId || null, brief: r.brief, date: r.date, time: r.time, capacity: r.capacity || null, courseId: r.linkId || null }));
+    await jsonFetch("/api/admin/trainers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, programs }) });
     setForm({ name: "", email: "", bio: "", mode: "" });
+    setProgramRows([]);
     refresh();
   }
 
@@ -366,15 +473,26 @@ function TrainersTab({ trainers, refresh }) {
     <>
       {credModal && (
         <div className="panel" style={{ borderColor: "var(--lime)", background: "#f7fdf0" }}>
-          <h3>Trainer dashboard access created</h3>
-          <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}>
-            {credModal.emailSent
-              ? <>An email with login details was sent to <b>{credModal.email}</b>.</>
-              : <>Email sending isn't configured yet — share these details with <b>{credModal.name}</b> yourself:</>}
-          </p>
-          <div style={{ fontSize: 14, fontFamily: "monospace", background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
-            Login: /trainer/login<br />Email: {credModal.email}<br />Temporary password: <b>{credModal.tempPassword}</b>
-          </div>
+          <h3>Trainer approved</h3>
+          {credModal.tempPassword ? (
+            <>
+              <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}>
+                {credModal.emailSent
+                  ? <>An email with login details was sent to <b>{credModal.email}</b>.</>
+                  : <>Email sending isn't configured yet — share these details with <b>{credModal.name}</b> yourself:</>}
+              </p>
+              <div style={{ fontSize: 14, fontFamily: "monospace", background: "#fff", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 14px", marginBottom: 12 }}>
+                Login: /trainer/login<br />Email: {credModal.email}<br />Temporary password: <b>{credModal.tempPassword}</b>
+              </div>
+            </>
+          ) : (
+            <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}>
+              {credModal.name} already set their own password when they applied.{" "}
+              {credModal.emailSent
+                ? <>We emailed them at <b>{credModal.email}</b> to let them know they can log in now.</>
+                : <>Email sending isn't configured yet — let <b>{credModal.name}</b> know at <b>{credModal.email}</b> that they can sign in at /trainer/login with the password they set on their application.</>}
+            </p>
+          )}
           <button className="pill pill-ghost pill-sm" onClick={() => setCredModal(null)}>Dismiss</button>
         </div>
       )}
@@ -400,7 +518,13 @@ function TrainersTab({ trainers, refresh }) {
         <div className="field"><label>Full name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
         <div className="field"><label>Email</label><input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
         <div className="field"><label>Bio</label><textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></div>
-        <button className="pill pill-primary" onClick={addTrainer}>Add trainer (pre-approved, no dashboard login)</button>
+
+        <div style={{ borderTop: "1px solid var(--line)", margin: "18px 0 12px" }} />
+        <b style={{ fontSize: 13.5 }}>Roll out program(s) for this trainer</b>
+        <p className="hint" style={{ display: "block", margin: "4px 0 0" }}>Optional — same fields as "Roll out a new program," so you can publish one or more sessions for them right now. Each one can be attached to a different course.</p>
+        <ProgramRowsEditor rows={programRows} setRows={setProgramRows} categories={categories} linkOptions={courses} linkLabel="Course (optional)" />
+
+        <button className="pill pill-primary" style={{ marginTop: 16 }} onClick={addTrainer}>Add trainer (pre-approved, no dashboard login)</button>
       </Panel>
 
       <Panel title={`Approved trainers & mentors (${approved.length})`}>

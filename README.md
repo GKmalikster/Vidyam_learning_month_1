@@ -42,10 +42,12 @@ feedback, and automated email reminders. Built to deploy cleanly on
 - **Courses** — create a multi-session course bundle, publish it, and
   attach existing sessions to it in order; published courses get their own
   band on the home page.
-- **Trainers & mentors** — approving a pending application provisions
-  their dashboard login and emails them the credentials via Resend (or, if
-  Resend isn't configured, shows you the temporary password once so you
-  can share it yourself).
+- **Trainers & mentors** — trainers set their own password right on the
+  public `/teach` application form, so approving a pending application just
+  unlocks the login they already created and emails them a "you're
+  approved" notice via Resend. (If a trainer account was added directly
+  from the console instead, approval falls back to generating a one-time
+  temporary password, shown to you if Resend isn't configured.)
 - **Registrants** — per-session registrant list with one-click attendance
   marking, waitlist promotion, and a CSV export button.
 
