@@ -38,6 +38,10 @@ export default async function HomePage() {
     WHERE s.status = 'completed' ORDER BY s.date DESC LIMIT 6
   `);
 
+  const trainers = await db.queryAll(
+    "SELECT id, name, photo, years, mode, bio FROM trainers WHERE status='approved' ORDER BY created_at DESC LIMIT 8"
+  );
+
   return (
     <>
       <SiteNav />
@@ -87,6 +91,33 @@ export default async function HomePage() {
         <h2>Upcoming programs</h2>
       </div>
       <ProgramGrid sessions={sessions} categories={categories} />
+
+      {trainers.length > 0 && (
+        <>
+          <div className="section-head">
+            <h2>Meet your trainers</h2>
+            <Link href="/trainers" className="pill pill-ghost pill-sm">See all trainers</Link>
+          </div>
+          <p className="section-sub">Working professionals who volunteer their time and craft to teach what they actually do.</p>
+          <div className="trainer-grid" style={{ marginBottom: 56 }}>
+            {trainers.map((t) => (
+              <div key={t.id} className="trainer-card">
+                <div className={`trainer-photo ${t.photo ? "trainer-photo-filled" : ""}`}>
+                  {t.photo ? (
+                    <img src={t.photo} alt={t.name} />
+                  ) : (
+                    <span className="ph-icon">🧑‍🏫</span>
+                  )}
+                </div>
+                <div className="trainer-info">
+                  <h4>{t.name}</h4>
+                  <div className="role">{t.years ? `${t.years} yrs · ` : ""}{t.mode}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {past.length > 0 && (
         <>

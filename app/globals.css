@@ -28,8 +28,13 @@ a{color:inherit;}
 .section.active{display:block;}
 
 /* NAV */
+/* .navbar is the actual class SiteNav.jsx renders on the <nav> element —
+   it needs the flex/space-between layout directly (not just the sticky/
+   background rules from the bare "nav" tag selector below), otherwise the
+   brand logo and nav links fall back to normal block flow and stack or
+   drift inconsistently depending on viewport width. */
 nav{position:sticky;top:0;z-index:40;background:rgba(255,255,255,0.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
-.navrow{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;max-width:1140px;margin:0 auto;}
+.navbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:16px 28px;max-width:1140px;margin:0 auto;}
 .brand{display:flex;align-items:center;gap:10px;cursor:pointer;}
 .brand img{height:34px;width:auto;}
 .brand span{font-weight:800;font-size:18px;letter-spacing:0.2px;}
