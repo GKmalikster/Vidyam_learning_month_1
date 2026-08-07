@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 // Not linked from the public site's nav — trainers land here from the
 // approval email (or by bookmarking it once they know it exists), same
@@ -46,6 +47,9 @@ export default function TrainerLogin() {
         <div className="field"><label>Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus /></div>
         <div className="field"><label>Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
         <button className="pill pill-primary" style={{ width: "100%" }} disabled={submitting}>{submitting ? "Signing in…" : "Sign in"}</button>
+        <p style={{ textAlign: "center", fontSize: 13, color: "var(--navy-soft)", marginTop: 18, marginBottom: 0 }}>
+          Not a trainer yet? <Link href="/teach" style={{ color: "var(--blue)", fontWeight: 600 }}>Apply to become one</Link> — accounts are created automatically once approved.
+        </p>
       </form>
     </div>
   );

@@ -32,7 +32,7 @@ export default function DashShell({ title, subtitle, navItems, activeId, onSelec
         </nav>
         <div className="dash-sidebar-foot">
           <div className="dash-user">{userLabel}</div>
-          <button className="pill pill-ghost pill-sm" onClick={onLogout} style={{ width: "100%" }}>Log out</button>
+          <button className="pill pill-ghost pill-sm dash-logout-btn" onClick={onLogout}>Log out</button>
         </div>
       </aside>
       <main className="dash-main">
