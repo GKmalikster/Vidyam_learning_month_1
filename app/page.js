@@ -99,20 +99,18 @@ export default async function HomePage() {
             <Link href="/trainers" className="pill pill-ghost pill-sm">See all trainers</Link>
           </div>
           <p className="section-sub">Working professionals who volunteer their time and craft to teach what they actually do.</p>
-          <div className="trainer-grid" style={{ marginBottom: 56 }}>
+          <div className="trainer-mini-grid">
             {trainers.map((t) => (
-              <div key={t.id} className="trainer-card">
-                <div className={`trainer-photo ${t.photo ? "trainer-photo-filled" : ""}`}>
+              <div key={t.id} className="trainer-mini-card">
+                <div className="trainer-mini-avatar">
                   {t.photo ? (
                     <img src={t.photo} alt={t.name} />
                   ) : (
-                    <span className="ph-icon">🧑‍🏫</span>
+                    <span>{t.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</span>
                   )}
                 </div>
-                <div className="trainer-info">
-                  <h4>{t.name}</h4>
-                  <div className="role">{t.years ? `${t.years} yrs · ` : ""}{t.mode}</div>
-                </div>
+                <h4>{t.name}</h4>
+                <div className="role">{t.years ? `${t.years} yrs · ` : ""}{t.mode}</div>
               </div>
             ))}
           </div>

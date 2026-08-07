@@ -107,6 +107,16 @@ nav{position:sticky;top:0;z-index:40;background:rgba(255,255,255,0.94);backdrop-
 .trainer-tags span{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--panel);color:var(--navy-soft);border:1px solid var(--line);}
 @media(max-width:900px){.trainer-grid{grid-template-columns:repeat(2,1fr);}}
 
+/* Compact trainer teaser on the home page — small circular avatars, not the
+   full tall photo cards used on the dedicated /trainers page. */
+.trainer-mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:56px;}
+.trainer-mini-card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:18px 12px;background:var(--card);border:1px solid var(--line);border-radius:16px;}
+.trainer-mini-avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--navy-soft);margin-bottom:10px;flex-shrink:0;}
+.trainer-mini-avatar img{width:100%;height:100%;object-fit:cover;}
+.trainer-mini-card h4{margin:0 0 3px;font-size:13.5px;color:var(--navy);}
+.trainer-mini-card .role{font-size:11px;color:var(--navy-soft);}
+@media(max-width:480px){.trainer-mini-grid{grid-template-columns:repeat(3,1fr);gap:10px;}.trainer-mini-card{padding:12px 6px;}}
+
 /* CARDS / GRID */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-top:10px;}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;cursor:pointer;transition:transform .15s, box-shadow .15s;overflow:hidden;border-top:3px solid var(--cat-color, var(--blue));}
