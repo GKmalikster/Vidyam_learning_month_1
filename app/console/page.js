@@ -11,6 +11,8 @@ const NAV = [
   { id: "trainers", label: "Trainers & mentors", icon: "🧑‍🏫" },
   { id: "categories", label: "Categories", icon: "🏷️" },
   { id: "registrants", label: "Registrants", icon: "👥" },
+  { id: "partners", label: "Partners", icon: "🤝" },
+  { id: "referrals", label: "Referrals", icon: "🔗" },
 ];
 
 const BRAND_PALETTE = ["#006afd", "#00cffe", "#923efb", "#fe8502", "#a7e318", "#0a1a4f"];
@@ -31,16 +33,20 @@ export default function ConsoleDashboard() {
   const [categories, setCategories] = useState([]);
   const [courses, setCourses] = useState([]);
   const [registrations, setRegistrations] = useState([]);
+  const [partners, setPartners] = useState([]);
+  const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const refreshAll = useCallback(async () => {
-    const [me, s, t, c, co, r] = await Promise.all([
+    const [me, s, t, c, co, r, p, rf] = await Promise.all([
       jsonFetch("/api/auth/me"),
       jsonFetch("/api/admin/sessions"),
       jsonFetch("/api/admin/trainers"),
       jsonFetch("/api/admin/categories"),
       jsonFetch("/api/admin/courses"),
       jsonFetch("/api/admin/registrations"),
+      jsonFetch("/api/admin/partners"),
+      jsonFetch("/api/admin/referrals"),
     ]);
     setAdmin(me.admin);
     setSessions(s);
@@ -48,6 +54,8 @@ export default function ConsoleDashboard() {
     setCategories(c);
     setCourses(co);
     setRegistrations(r);
+    setPartners(p);
+    setReferrals(rf);
     setLoading(false);
   }, []);
 
@@ -64,6 +72,8 @@ export default function ConsoleDashboard() {
   const pendingRequestCount = sessions.filter((s) => s.status === "pending" || s.status === "on_hold").length;
   const pendingTrainerCount = trainers.filter((t) => t.status === "pending").length;
   const waitlistCount = registrations.filter((r) => r.waitlisted).length;
+  const pendingPartnerCount = partners.filter((p) => p.status === "pending").length;
+  const pendingReferralCount = referrals.filter((r) => r.status === "invited").length;
 
   return (
     <DashShell
@@ -71,7 +81,8 @@ export default function ConsoleDashboard() {
       subtitle="Vidyam Learning Month"
       navItems={NAV.map((n) => ({
         ...n,
-        badge: n.id === "requests" ? pendingRequestCount : n.id === "trainers" ? pendingTrainerCount : undefined,
+        badge: n.id === "requests" ? pendingRequestCount : n.id === "trainers" ? pendingTrainerCount
+          : n.id === "partners" ? pendingPartnerCount : n.id === "referrals" ? pendingReferralCount : undefined,
       }))}
       activeId={tab}
       onSelect={setTab}
@@ -83,6 +94,8 @@ export default function ConsoleDashboard() {
         { label: "Trainer applications waiting", value: pendingTrainerCount },
         { label: "Registrations", value: registrations.length },
         { label: "On waitlist", value: waitlistCount },
+        { label: "Partner interest waiting", value: pendingPartnerCount },
+        { label: "Referrals waiting", value: pendingReferralCount },
       ]}
     >
       {tab === "programs" && <ProgramsTab sessions={sessions} categories={categories} trainers={trainers} courses={courses} refresh={refreshAll} />}
@@ -91,6 +104,8 @@ export default function ConsoleDashboard() {
       {tab === "trainers" && <TrainersTab trainers={trainers} categories={categories} courses={courses} refresh={refreshAll} />}
       {tab === "categories" && <CategoriesTab categories={categories} refresh={refreshAll} />}
       {tab === "registrants" && <RegistrantsTab sessions={sessions} registrations={registrations} refresh={refreshAll} />}
+      {tab === "partners" && <PartnersTab partners={partners} refresh={refreshAll} />}
+      {tab === "referrals" && <ReferralsTab referrals={referrals} refresh={refreshAll} />}
     </DashShell>
   );
 }
@@ -627,11 +642,17 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
     refresh();
   }
 
+  function profileLabel(r) {
+    if (!r.profile_type || r.profile_type === "individual") return "Individual";
+    const label = r.profile_type.charAt(0).toUpperCase() + r.profile_type.slice(1);
+    return r.org_name ? `${label} · ${r.org_name}` : label;
+  }
+
   function exportCsv(sessionId, title) {
     const rows = registrations.filter((r) => r.session_id === sessionId);
-    const header = ["Name", "Email", "Phone", "City", "Role", "Attended", "Waitlisted"];
+    const header = ["Name", "Email", "Phone", "City", "Role", "Profile type", "Organization", "Org role", "Attended", "Waitlisted"];
     const lines = [header.join(",")].concat(
-      rows.map((r) => [r.name, r.email, r.phone, r.city, r.role, r.attended ? "yes" : "no", r.waitlisted ? "yes" : "no"]
+      rows.map((r) => [r.name, r.email, r.phone, r.city, r.role, r.profile_type || "individual", r.org_name, r.org_role, r.attended ? "yes" : "no", r.waitlisted ? "yes" : "no"]
         .map((v) => `"${String(v || "").replace(/"/g, '""')}"`).join(","))
     );
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
@@ -667,7 +688,10 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
                 {rows.map((r) => (
                   <div key={r.id} className="registrant-row">
                     <span className="registrant-name">{r.name}</span>
-                    <span className="registrant-meta">{r.email} {r.city ? `· ${r.city}` : ""} {r.role ? `· ${r.role}` : ""}</span>
+                    <span className="registrant-meta">
+                      {r.email} {r.city ? `· ${r.city}` : ""} {r.role ? `· ${r.role}` : ""}
+                      {r.profile_type && r.profile_type !== "individual" ? ` · ${profileLabel(r)}` : ""}
+                    </span>
                     <span className={`check-pill ${r.waitlisted ? "waitlist" : ""}`} onClick={() => toggle(r.id, "waitlisted", !r.waitlisted)}>
                       {r.waitlisted ? "Waitlisted — promote" : "Confirmed"}
                     </span>
@@ -682,5 +706,140 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
         );
       })}
     </Panel>
+  );
+}
+
+/* ---------------- Partners tab ---------------- */
+function PartnersTab({ partners, refresh }) {
+  const pending = partners.filter((p) => p.status === "pending");
+  const reviewed = partners.filter((p) => p.status !== "pending");
+  const [notes, setNotes] = useState({});
+
+  async function decide(id, status) {
+    await jsonFetch(`/api/admin/partners/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, notes: notes[id] }),
+    });
+    refresh();
+  }
+  async function del(id) { await jsonFetch(`/api/admin/partners/${id}`, { method: "DELETE" }); refresh(); }
+
+  return (
+    <>
+      <Panel title={`Pending partner interest (${pending.length})`}>
+        <p className="hint" style={{ display: "block", marginBottom: 14 }}>Submitted from the public "Partner with us" page. Approving here doesn't create any account — it just marks the lead as accepted so follow-up (email/call) can happen off-platform.</p>
+        {pending.length === 0 && <div className="empty-note">No partner applications waiting on you right now.</div>}
+        {pending.map((p) => (
+          <div key={p.id} className="proposal-card">
+            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <b>{p.name}</b>
+              <span className="hint">{p.email} {p.phone ? `· ${p.phone}` : ""}</span>
+            </div>
+            {p.contact_name && <div className="hint" style={{ display: "block", margin: "4px 0" }}>Contact: {p.contact_name}</div>}
+            <div style={{ margin: "8px 0", display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {p.capacities.map((c) => <span key={c} className="badge pending" style={{ fontSize: 11.5 }}>{c}</span>)}
+            </div>
+            <div className="hint" style={{ display: "block", marginBottom: 4 }}>Depth: {p.depth === "structured" ? "Structured MOU-style partner" : "Friend of Vidyam"}{p.timeline ? ` · Timeline: ${p.timeline}` : ""}</div>
+            {p.offer && <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}><b>Can offer:</b> {p.offer}</p>}
+            {p.hope_for && <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}><b>Hoping for:</b> {p.hope_for}</p>}
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Review notes <span className="hint">(optional, saved with your decision)</span></label>
+              <input value={notes[p.id] || ""} onChange={(e) => setNotes((n) => ({ ...n, [p.id]: e.target.value }))} />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="pill pill-primary pill-sm" onClick={() => decide(p.id, "approved")}>Approve</button>
+              <button className="pill pill-ghost pill-sm" onClick={() => decide(p.id, "declined")}>Decline</button>
+            </div>
+          </div>
+        ))}
+      </Panel>
+
+      <Panel title={`Reviewed partners (${reviewed.length})`}>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th align="left">Name</th><th align="left">Capacities</th><th align="left">Status</th><th /></tr></thead>
+            <tbody>
+              {reviewed.map((p) => (
+                <tr key={p.id}>
+                  <td style={{ padding: "8px 4px" }}>{p.name}</td>
+                  <td>{p.capacities.join(", ")}</td>
+                  <td><span className={`badge ${p.status === "approved" ? "approved" : "pending"}`}>{p.status}</span></td>
+                  <td><button className="icon-btn danger" onClick={() => del(p.id)}>Delete</button></td>
+                </tr>
+              ))}
+              {reviewed.length === 0 && <tr><td colSpan={4} className="empty-note">No reviewed partners yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+/* ---------------- Referrals tab ---------------- */
+function ReferralsTab({ referrals, refresh }) {
+  const active = referrals.filter((r) => r.status !== "approved" && r.status !== "declined");
+  const closed = referrals.filter((r) => r.status === "approved" || r.status === "declined");
+
+  async function remind(id) {
+    await jsonFetch(`/api/admin/referrals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remind" }) });
+    refresh();
+  }
+  async function decline(id) {
+    await jsonFetch(`/api/admin/referrals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "declined" }) });
+    refresh();
+  }
+  async function del(id) { await jsonFetch(`/api/admin/referrals/${id}`, { method: "DELETE" }); refresh(); }
+
+  function statusLabel(r) {
+    if (r.status === "invited") return "Invited — awaiting application";
+    if (r.status === "applied") return `Applied${r.trainer_status ? ` (${r.trainer_status})` : ""}`;
+    if (r.status === "approved") return "Approved trainer — thank-you sent";
+    if (r.status === "declined") return "Declined";
+    return r.status;
+  }
+
+  return (
+    <>
+      <Panel title={`Active referrals (${active.length})`}>
+        <p className="hint" style={{ display: "block", marginBottom: 14 }}>Discover → Refer → Convert → Recognize. Each row is one person referred; once they apply via their personal invite link, it moves to "Applied," and once approved as a trainer, the referrer is automatically emailed a thank-you.</p>
+        {active.length === 0 && <div className="empty-note">No active referrals right now.</div>}
+        {active.map((r) => (
+          <div key={r.id} className="registrant-row" style={{ padding: "12px 4px" }}>
+            <div style={{ minWidth: 220 }}>
+              <b style={{ color: "var(--navy)" }}>{r.referred_name}</b>
+              <div className="registrant-meta">{r.referred_email || r.referred_phone} {r.category_name ? `· ${r.category_name}` : ""}</div>
+            </div>
+            <div className="registrant-meta" style={{ flex: 1 }}>
+              Referred by <b>{r.referrer_name}</b> ({r.referrer_email}) · {statusLabel(r)}
+              {r.reminder_sent_at && <> · last reminded {new Date(r.reminder_sent_at).toLocaleDateString()}</>}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              {r.status === "invited" && r.referred_email && <button className="pill pill-ghost pill-sm" onClick={() => remind(r.id)}>Send reminder</button>}
+              {r.status !== "applied" && <button className="pill pill-ghost pill-sm" onClick={() => decline(r.id)}>Decline</button>}
+            </div>
+          </div>
+        ))}
+      </Panel>
+
+      <Panel title={`Closed referrals (${closed.length})`}>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th align="left">Referred</th><th align="left">Referrer</th><th align="left">Outcome</th><th /></tr></thead>
+            <tbody>
+              {closed.map((r) => (
+                <tr key={r.id}>
+                  <td style={{ padding: "8px 4px" }}>{r.referred_name}</td>
+                  <td>{r.referrer_name}</td>
+                  <td><span className={`badge ${r.status === "approved" ? "approved" : "pending"}`}>{r.status}</span></td>
+                  <td><button className="icon-btn danger" onClick={() => del(r.id)}>Delete</button></td>
+                </tr>
+              ))}
+              {closed.length === 0 && <tr><td colSpan={4} className="empty-note">No closed referrals yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </>
   );
 }

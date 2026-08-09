@@ -12,7 +12,7 @@ import db from "@/lib/db";
 // (enforced in /api/trainer-auth/login).
 export async function POST(request) {
   const body = await request.json();
-  const { name, email, password, years, bio, topics, mode, linkedin, availability, expertise, motivation, photo, proposals } = body;
+  const { name, email, password, years, bio, topics, mode, linkedin, availability, expertise, motivation, photo, proposals, referralId } = body;
 
   if (!name || !email) {
     return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
@@ -56,6 +56,15 @@ export async function POST(request) {
       [p.title, p.categoryId, p.brief, trainerId, JSON.stringify(validSlots)]
     );
     createdSessionIds.push(row.id);
+  }
+
+  if (referralId) {
+    // Link this application back to the referral that produced it, so the
+    // admin console and the eventual approval-thank-you email can trace it.
+    await db.query(
+      "UPDATE referrals SET status = 'applied', trainer_id = $1 WHERE id = $2 AND status != 'applied'",
+      [trainerId, referralId]
+    );
   }
 
   return NextResponse.json({ trainerId, createdSessionIds }, { status: 201 });

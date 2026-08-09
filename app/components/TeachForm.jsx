@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const AVAILABILITY_OPTS = ["Weekday evenings", "Weekends", "Flexible / either"];
@@ -13,8 +14,13 @@ function blankProposal(defaultCategoryId) {
 }
 
 export default function TeachForm({ categories }) {
+  const searchParams = useSearchParams();
+  const referralId = searchParams.get("ref") || "";
+  const referrerName = searchParams.get("refName") || "";
+
   const [profile, setProfile] = useState({
-    name: "", email: "", password: "", confirmPassword: "", years: "", bio: "", topics: "", mode: "", linkedin: "", motivation: "", consent: false,
+    name: searchParams.get("name") || "", email: searchParams.get("email") || "",
+    password: "", confirmPassword: "", years: "", bio: "", topics: "", mode: "", linkedin: "", motivation: "", consent: false,
   });
   const [expertise, setExpertise] = useState([]);
   const [availability, setAvailability] = useState([]);
@@ -95,7 +101,7 @@ export default function TeachForm({ categories }) {
       const res = await fetch("/api/trainers/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...profileToSend, expertise, availability, photo, proposals: touched }),
+        body: JSON.stringify({ ...profileToSend, expertise, availability, photo, proposals: touched, referralId: referralId || null }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));

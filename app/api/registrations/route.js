@@ -33,8 +33,9 @@ export async function POST(request) {
     const row = await db.queryOne(
       `INSERT INTO registrations
         (session_id, name, email, phone, city, age_group, role, education, industry, experience,
-         interests, linkedin, format, language, time_pref, is_returning, goal, source, consent, waitlisted)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+         interests, linkedin, format, language, time_pref, is_returning, goal, source, consent, waitlisted,
+         profile_type, org_name, org_role, org_detail, corporate_modes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
        RETURNING id`,
       [
         sessionId,
@@ -57,6 +58,11 @@ export async function POST(request) {
         profile.source || "",
         profile.consent ? 1 : 0,
         waitlisted,
+        profile.profileType || "individual",
+        profile.orgName || "",
+        profile.orgRole || "",
+        profile.orgDetail || "",
+        JSON.stringify(profile.corporateModes || []),
       ]
     );
     ids.push(row.id);

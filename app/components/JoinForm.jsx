@@ -9,6 +9,21 @@ const STEP_HINTS = {
   3: "A little more, so trainers understand their audience",
 };
 
+const PROFILE_TYPES = [
+  { id: "individual", label: "Just me" },
+  { id: "institution", label: "A school, college, or institution" },
+  { id: "corporate", label: "A company" },
+  { id: "incubator", label: "An incubator / startup ecosystem" },
+  { id: "community", label: "A community group / nonprofit" },
+  { id: "other", label: "Something else" },
+];
+
+const CORPORATE_MODES = [
+  "Employees as learners",
+  "Employees as trainers",
+  "CSR sponsorship",
+];
+
 export default function JoinForm({ sessions, categories }) {
   const [step, setStep] = useState(1);
   const [selectedSessions, setSelectedSessions] = useState([]);
@@ -21,13 +36,18 @@ export default function JoinForm({ sessions, categories }) {
     name: "", email: "", phone: "", city: "", ageGroup: "", role: "",
     education: "", industry: "", experience: "", linkedin: "", format: "",
     language: "", timePref: "", returning: "", goal: "", source: "", consent: false,
+    profileType: "individual", orgName: "", orgRole: "", orgDetail: "",
   });
+  const [corporateModes, setCorporateModes] = useState([]);
 
   function toggleSession(id) {
     setSelectedSessions((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
   function toggleInterest(id) {
     setSelectedInterests((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+  function toggleCorporateMode(mode) {
+    setCorporateModes((prev) => (prev.includes(mode) ? prev.filter((x) => x !== mode) : [...prev, mode]));
   }
   function update(field, value) {
     setProfile((p) => ({ ...p, [field]: value }));
@@ -49,7 +69,7 @@ export default function JoinForm({ sessions, categories }) {
       const res = await fetch("/api/registrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionIds: selectedSessions, ...profile, interests: selectedInterests }),
+        body: JSON.stringify({ sessionIds: selectedSessions, ...profile, interests: selectedInterests, corporateModes }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -127,6 +147,52 @@ export default function JoinForm({ sessions, categories }) {
 
       {step === 2 && (
         <div className="wizard-step active">
+          <div className="field">
+            <label>How are you joining us?</label>
+            <div className="chip-row">
+              {PROFILE_TYPES.map((p) => (
+                <div key={p.id} className={`chip ${profile.profileType === p.id ? "selected" : ""}`} onClick={() => update("profileType", p.id)}>
+                  {p.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {profile.profileType !== "individual" && (
+            <div className="proposal-card" style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 16, marginBottom: 18 }}>
+              <div className="field">
+                <label>{profile.profileType === "other" ? "Organization / group name" : "Name of your institution / company / group"} *</label>
+                <input type="text" value={profile.orgName} onChange={(e) => update("orgName", e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Your role there <span className="hint">(optional)</span></label>
+                <input type="text" placeholder="e.g. Coordinator, Faculty, Student, Employee" value={profile.orgRole} onChange={(e) => update("orgRole", e.target.value)} />
+              </div>
+              {profile.profileType === "other" && (
+                <div className="field">
+                  <label>Tell us a bit about your group</label>
+                  <textarea value={profile.orgDetail} onChange={(e) => update("orgDetail", e.target.value)} />
+                </div>
+              )}
+              {profile.profileType === "corporate" && (
+                <div className="field">
+                  <label>How would your company like to engage? <span className="hint">(select any)</span></label>
+                  <div className="chip-row">
+                    {CORPORATE_MODES.map((m) => (
+                      <div key={m} className={`chip ${corporateModes.includes(m) ? "selected" : ""}`} onClick={() => toggleCorporateMode(m)}>
+                        {m}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="hint" style={{ display: "block", marginTop: 4 }}>
+                You&apos;re still registering just for yourself — we&apos;ll never share your individual details with your
+                organization, only an aggregate summary if you&apos;d like us to.
+              </p>
+            </div>
+          )}
+
           <div className="field"><label>Phone</label><input type="tel" value={profile.phone} onChange={(e) => update("phone", e.target.value)} /></div>
           <div className="field"><label>City</label><input type="text" value={profile.city} onChange={(e) => update("city", e.target.value)} /></div>
           <div className="field">

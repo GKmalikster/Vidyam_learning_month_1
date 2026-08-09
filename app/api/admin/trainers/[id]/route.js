@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import db from "@/lib/db";
-import { sendEmail, trainerApprovedEmail, trainerApprovedNoPasswordEmail } from "@/lib/email";
+import { sendEmail, trainerApprovedEmail, trainerApprovedNoPasswordEmail, referralThankYouEmail } from "@/lib/email";
 
 function randomTempPassword() {
   // 10 url-safe characters — easy enough to read aloud/copy if the admin
@@ -89,6 +89,33 @@ export async function PATCH(request, { params }) {
         await db.query(
           "INSERT INTO notifications_queue (type, recipient_email, subject, body, status, error) VALUES ($1,$2,$3,$4,'failed',$5)",
           ["trainer_approved", merged.email, "You're approved to train on Vidyam Learning Month", "", e.message]
+        );
+      }
+    }
+
+    // If this trainer's application came in through a referral, close the
+    // loop: mark the referral approved and thank the referrer — never a
+    // paid finder's fee, just recognition.
+    const referral = await db.queryOne(
+      "SELECT * FROM referrals WHERE trainer_id = $1 AND status != 'approved'",
+      [id]
+    );
+    if (referral) {
+      await db.query("UPDATE referrals SET status = 'approved' WHERE id = $1", [referral.id]);
+      try {
+        const { subject, html } = referralThankYouEmail({
+          referrerName: referral.referrer_name,
+          referredName: merged.name,
+        });
+        const result = await sendEmail({ to: referral.referrer_email, subject, html });
+        await db.query(
+          "INSERT INTO notifications_queue (type, recipient_email, subject, body, status, sent_at) VALUES ($1,$2,$3,$4,$5, CASE WHEN $5='sent' THEN NOW() ELSE NULL END)",
+          ["referral_thank_you", referral.referrer_email, subject, html, result.skipped ? "skipped" : "sent"]
+        );
+      } catch (e) {
+        await db.query(
+          "INSERT INTO notifications_queue (type, recipient_email, subject, body, status, error) VALUES ($1,$2,$3,$4,'failed',$5)",
+          ["referral_thank_you", referral.referrer_email, "Thanks for the referral", "", e.message]
         );
       }
     }

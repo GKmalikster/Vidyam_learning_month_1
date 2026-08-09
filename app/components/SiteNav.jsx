@@ -12,6 +12,7 @@ const NAV = [
   { href: "/trainers", label: "Trainers", icon: "🧑‍🏫" },
   { href: "/join", label: "Join as learner", icon: "🎓", tabLabel: "Join" },
   { href: "/teach", label: "Become a trainer", icon: "📣", tabLabel: "Teach" },
+  { href: "/partner", label: "Partner with us", icon: "🤝", tabLabel: "Partner" },
 ];
 
 export default function SiteNav() {
