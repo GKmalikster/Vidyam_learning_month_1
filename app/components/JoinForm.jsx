@@ -24,6 +24,18 @@ const CORPORATE_MODES = [
   "CSR sponsorship",
 ];
 
+// Org-name/role copy tailored per profile type — a generic "institution /
+// company / group" label read oddly for e.g. incubators, and a shared
+// placeholder list ("Coordinator, Faculty, Student, Employee") didn't fit
+// any of them well.
+const PROFILE_ORG_FIELDS = {
+  institution: { orgLabel: "Name of your school / college / institution", rolePlaceholder: "e.g. Coordinator, Faculty, Student" },
+  corporate: { orgLabel: "Name of your company", rolePlaceholder: "e.g. L&D Manager, HR, Employee" },
+  incubator: { orgLabel: "Name of your incubator / accelerator", rolePlaceholder: "e.g. Program Manager, Mentor, Founder-in-Residence" },
+  community: { orgLabel: "Name of your community group / nonprofit", rolePlaceholder: "e.g. Volunteer, Organizer, Member" },
+  other: { orgLabel: "Organization / group name", rolePlaceholder: "e.g. your role in the group" },
+};
+
 export default function JoinForm({ sessions, categories }) {
   const [step, setStep] = useState(1);
   const [selectedSessions, setSelectedSessions] = useState([]);
@@ -161,12 +173,12 @@ export default function JoinForm({ sessions, categories }) {
           {profile.profileType !== "individual" && (
             <div className="proposal-card" style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 16, marginBottom: 18 }}>
               <div className="field">
-                <label>{profile.profileType === "other" ? "Organization / group name" : "Name of your institution / company / group"} *</label>
+                <label>{PROFILE_ORG_FIELDS[profile.profileType]?.orgLabel || "Organization / group name"} *</label>
                 <input type="text" value={profile.orgName} onChange={(e) => update("orgName", e.target.value)} />
               </div>
               <div className="field">
                 <label>Your role there <span className="hint">(optional)</span></label>
-                <input type="text" placeholder="e.g. Coordinator, Faculty, Student, Employee" value={profile.orgRole} onChange={(e) => update("orgRole", e.target.value)} />
+                <input type="text" placeholder={PROFILE_ORG_FIELDS[profile.profileType]?.rolePlaceholder} value={profile.orgRole} onChange={(e) => update("orgRole", e.target.value)} />
               </div>
               {profile.profileType === "other" && (
                 <div className="field">
@@ -202,14 +214,16 @@ export default function JoinForm({ sessions, categories }) {
               <option>Under 18</option><option>18–24</option><option>25–34</option><option>35–44</option><option>45+</option>
             </select>
           </div>
-          <div className="field">
-            <label>Current role</label>
-            <select value={profile.role} onChange={(e) => update("role", e.target.value)}>
-              <option value="">Select</option>
-              <option>Student</option><option>Early career professional</option><option>Mid-career professional</option>
-              <option>Senior professional / leader</option><option>Entrepreneur / founder</option><option>Between roles</option><option>Other</option>
-            </select>
-          </div>
+          {profile.profileType === "individual" && (
+            <div className="field">
+              <label>Current role</label>
+              <select value={profile.role} onChange={(e) => update("role", e.target.value)}>
+                <option value="">Select</option>
+                <option>Student</option><option>Early career professional</option><option>Mid-career professional</option>
+                <option>Senior professional / leader</option><option>Entrepreneur / founder</option><option>Between roles</option><option>Other</option>
+              </select>
+            </div>
+          )}
           <div className="wizard-nav">
             <button className="pill pill-ghost" onClick={() => setStep(1)}>Back</button>
             <button className="pill pill-primary" onClick={() => setStep(3)}>Continue</button>
