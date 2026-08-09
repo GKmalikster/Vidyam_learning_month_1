@@ -14,9 +14,12 @@ export default async function TeachPage() {
       <SiteNav />
       <div className="wrap">
         <div className="section-head" style={{ marginTop: 32 }}><h2>Become a trainer or mentor</h2></div>
-        <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
+        <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 8 }}>
           Share your expertise with the community — even one session makes a difference.{" "}
           Know someone who&apos;d be even better? <Link href="/refer">Refer them instead</Link>.
+        </p>
+        <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28, fontSize: 14 }}>
+          Already applied? <Link href="/trainer/login">Sign in to your trainer dashboard</Link>.
         </p>
         <Suspense fallback={null}>
           <TeachForm categories={categories} />
