@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const STEP_HINTS = {
   1: "Pick your programs",
@@ -200,7 +201,8 @@ export default function JoinForm({ sessions, categories }) {
           <div className="field">
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
               <input type="checkbox" checked={profile.consent} onChange={(e) => update("consent", e.target.checked)} style={{ width: "auto" }} />
-              I agree to be contacted about these programs.
+              I agree to be contacted about these programs, and I&apos;ve read the{" "}
+              <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>.
             </label>
           </div>
           <div className="wizard-nav">

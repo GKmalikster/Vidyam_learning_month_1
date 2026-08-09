@@ -11,7 +11,7 @@ feedback, and automated email reminders. Built to deploy cleanly on
 
 ## What's in this version
 
-**Public site** (`/`, `/trainers`, `/programs/[id]`, `/join`, `/teach`)
+**Public site** (`/`, `/trainers`, `/programs/[id]`, `/join`, `/teach`, `/terms`, `/privacy`)
 - Home page shows live programs, published multi-part **courses**, and a
   **Past programs** section (completed sessions with recordings/materials).
 - Program detail pages show capacity/waitlist status, trainer profile,

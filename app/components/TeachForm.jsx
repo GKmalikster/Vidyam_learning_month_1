@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const AVAILABILITY_OPTS = ["Weekday evenings", "Weekends", "Flexible / either"];
 
@@ -13,7 +14,7 @@ function blankProposal(defaultCategoryId) {
 
 export default function TeachForm({ categories }) {
   const [profile, setProfile] = useState({
-    name: "", email: "", password: "", confirmPassword: "", years: "", bio: "", topics: "", mode: "", linkedin: "", motivation: "",
+    name: "", email: "", password: "", confirmPassword: "", years: "", bio: "", topics: "", mode: "", linkedin: "", motivation: "", consent: false,
   });
   const [expertise, setExpertise] = useState([]);
   const [availability, setAvailability] = useState([]);
@@ -78,6 +79,10 @@ export default function TeachForm({ categories }) {
       setError("Passwords don't match.");
       return;
     }
+    if (!profile.consent) {
+      setError("Please confirm you've read the Terms & Privacy Policy before applying.");
+      return;
+    }
     const touched = proposals.filter(isTouched);
     if (touched.some((p) => !isComplete(p))) {
       setError("Each session you start needs a title, category, brief, and all 3 proposed time slots — or remove it.");
@@ -86,7 +91,7 @@ export default function TeachForm({ categories }) {
 
     setSubmitting(true);
     try {
-      const { confirmPassword, ...profileToSend } = profile;
+      const { confirmPassword, consent, ...profileToSend } = profile;
       const res = await fetch("/api/trainers/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -207,6 +212,13 @@ export default function TeachForm({ categories }) {
         </div>
       ))}
       <button type="button" className="pill pill-ghost" onClick={addProposal} style={{ marginBottom: 24 }}>+ Propose another session</button>
+
+      <div className="field">
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
+          <input type="checkbox" checked={profile.consent} onChange={(e) => update("consent", e.target.checked)} style={{ width: "auto" }} />
+          I've read the <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>, and I consent to Vidyam storing my application details.
+        </label>
+      </div>
 
       <div className="wizard-nav">
         <span />
