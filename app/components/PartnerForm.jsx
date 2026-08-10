@@ -54,11 +54,11 @@ export default function PartnerForm() {
   async function submit() {
     setError("");
     if (!form.name.trim() || !form.email.trim()) {
-      setError("Name and email are required.");
+      setError("Please provide your name and email.");
       return;
     }
     if (capacities.length === 0) {
-      setError("Pick at least one way you'd like to partner.");
+      setError("Please select at least one way you would like to partner with us.");
       return;
     }
     if (!form.consent) {
@@ -88,10 +88,10 @@ export default function PartnerForm() {
   if (success) {
     return (
       <div className="form-card" style={{ margin: "0 auto 56px", textAlign: "center" }}>
-        <h2>Thanks for reaching out! 🤝</h2>
+        <h2>Thank you for your interest in partnering with us</h2>
         <p style={{ color: "var(--navy-soft)" }}>
-          Your interest in partnering with Vidyam is with our team. We aim to respond within 5 business days to talk
-          through what a partnership could look like.
+          Your interest in partnering with Vidyam has been shared with our team. We aim to respond within five
+          business days to discuss what a partnership could look like.
         </p>
       </div>
     );
@@ -144,7 +144,7 @@ export default function PartnerForm() {
       <div className="field">
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
           <input type="checkbox" checked={form.consent} onChange={(e) => update("consent", e.target.checked)} style={{ width: "auto" }} />
-          I&apos;ve read the <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>.
+          I confirm that I have read the <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>.
         </label>
       </div>
 

@@ -16,7 +16,7 @@ export default async function TrainersPage() {
           <h2>Meet your trainers</h2>
         </div>
         <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
-          Working professionals who volunteer their time and craft to teach what they actually do.
+          Working professionals who generously volunteer their time and expertise to teach what they do in practice.
         </p>
         <div className="trainer-grid" style={{ marginBottom: 56 }}>
           {trainers.map((t) => (

@@ -15,11 +15,11 @@ export default async function TeachPage() {
       <div className="wrap">
         <div className="section-head" style={{ marginTop: 32 }}><h2>Become a trainer or mentor</h2></div>
         <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 8 }}>
-          Share your expertise with the community — even one session makes a difference.{" "}
-          Know someone who&apos;d be even better? <Link href="/refer">Refer them instead</Link>.
+          We invite you to share your expertise with the community — even a single session can make a meaningful difference.{" "}
+          If you know someone who may be a better fit, you are welcome to <Link href="/refer">refer them instead</Link>.
         </p>
         <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28, fontSize: 14 }}>
-          Already applied? <Link href="/trainer/login">Sign in to your trainer dashboard</Link>.
+          Already applied? You may <Link href="/trainer/login">sign in to your trainer dashboard</Link>.
         </p>
         <Suspense fallback={null}>
           <TeachForm categories={categories} />

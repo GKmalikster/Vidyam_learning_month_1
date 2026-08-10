@@ -15,8 +15,8 @@ export default async function ReferPage() {
       <div className="wrap">
         <div className="section-head" style={{ marginTop: 32 }}><h2>Refer a trainer, mentor, or coach</h2></div>
         <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
-          Know someone who&apos;d be a great fit? We&apos;ll send them a warm, personal invitation to apply — never a cold
-          outreach, and never without your permission.
+          If you know someone who would be a great fit, we will send them a warm, personal invitation to apply. We never
+          conduct cold outreach, and never without your permission.
         </p>
         <ReferForm categories={categories} />
       </div>

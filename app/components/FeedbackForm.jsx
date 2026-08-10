@@ -12,21 +12,21 @@ export default function FeedbackForm({ sessionId }) {
 
   async function submit() {
     setError("");
-    if (!rating) { setError("Pick a star rating first."); return; }
+    if (!rating) { setError("Please select a star rating."); return; }
     try {
       const res = await fetch(`/api/sessions/${sessionId}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, rating, comment }),
       });
-      if (!res.ok) throw new Error("Couldn't submit feedback — try again.");
+      if (!res.ok) throw new Error("We were unable to submit your feedback. Please try again.");
       setSubmitted(true);
     } catch (e) {
       setError(e.message);
     }
   }
 
-  if (submitted) return <div className="success-box show">Thanks for the feedback — it helps the next cohort.</div>;
+  if (submitted) return <div className="success-box show">Thank you for your feedback — it helps us improve future sessions.</div>;
 
   return (
     <div>

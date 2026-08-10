@@ -58,7 +58,7 @@ export default async function ProgramDetail({ params }) {
         </div>
         {s.capacity && !isCompleted && (
           <div className="hint" style={{ display: "block", marginBottom: 18 }}>
-            {isFull ? "This session is full — new registrations join a waitlist." : `${s.registered_count} of ${s.capacity} spots filled.`}
+            {isFull ? "This session has reached capacity; new registrations will be added to a waitlist." : `${s.registered_count} of ${s.capacity} spots have been filled.`}
           </div>
         )}
         <p style={{ color: "var(--navy-soft)", lineHeight: 1.7, marginBottom: 28 }}>{s.brief}</p>
@@ -106,7 +106,7 @@ export default async function ProgramDetail({ params }) {
 
         <div style={{ borderTop: "1px solid var(--line)", paddingTop: 22, marginBottom: 22 }}>
           <h3 style={{ margin: "0 0 12px" }}>Feedback {feedback.length > 0 && `(${feedback.length})`}</h3>
-          {feedback.length === 0 && <div className="empty-note" style={{ marginBottom: 16 }}>No feedback yet — be the first to share yours.</div>}
+          {feedback.length === 0 && <div className="empty-note" style={{ marginBottom: 16 }}>No feedback has been submitted yet. We would welcome yours.</div>}
           {feedback.slice(0, 5).map((f) => (
             <div key={f.id} className="feedback-item">
               <div className="stars-mini">{"★".repeat(f.rating)}{"☆".repeat(5 - f.rating)}</div>

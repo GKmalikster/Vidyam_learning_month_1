@@ -74,7 +74,7 @@ export default function TeachForm({ categories }) {
   async function submit() {
     setError("");
     if (!profile.name.trim() || !profile.email.trim()) {
-      setError("Name and email are required.");
+      setError("Please provide your name and email.");
       return;
     }
     if (!profile.password || profile.password.length < 8) {
@@ -82,7 +82,7 @@ export default function TeachForm({ categories }) {
       return;
     }
     if (profile.password !== profile.confirmPassword) {
-      setError("Passwords don't match.");
+      setError("The passwords entered do not match.");
       return;
     }
     if (!profile.consent) {
@@ -91,7 +91,7 @@ export default function TeachForm({ categories }) {
     }
     const touched = proposals.filter(isTouched);
     if (touched.some((p) => !isComplete(p))) {
-      setError("Each session you start needs a title, category, brief, and all 3 proposed time slots — or remove it.");
+      setError("Each session you begin must include a title, category, brief description, and all three proposed time slots, or be removed.");
       return;
     }
 
@@ -118,9 +118,9 @@ export default function TeachForm({ categories }) {
   if (success) {
     return (
       <div className="form-card" style={{ margin: "0 auto 56px", textAlign: "center" }}>
-        <h2>Thanks for stepping up! 🙌</h2>
+        <h2>Thank you for applying</h2>
         <p style={{ color: "var(--navy-soft)" }}>
-          Your application{proposals.filter(isTouched).length > 0 ? " and proposed session(s) are" : " is"} with the Vidyam team for review. We&apos;ll email you as soon as you&apos;re approved — then you can sign in to your trainer dashboard with the password you just set.
+          Your application{proposals.filter(isTouched).length > 0 ? " and proposed session(s) have" : " has"} been submitted to the Vidyam team for review. We will email you as soon as it is approved, after which you may sign in to your trainer dashboard using the password you have just set.
         </p>
       </div>
     );
@@ -137,7 +137,7 @@ export default function TeachForm({ categories }) {
         <div className="field"><label>Create a password *</label><input type="password" value={profile.password} onChange={(e) => update("password", e.target.value)} /></div>
         <div className="field"><label>Confirm password *</label><input type="password" value={profile.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} /></div>
       </div>
-      <p className="hint" style={{ display: "block", marginTop: -12, marginBottom: 18 }}>At least 8 characters. This is how you'll sign in to your trainer dashboard once we approve your application — no need to wait for a separate email with a temp password.</p>
+      <p className="hint" style={{ display: "block", marginTop: -12, marginBottom: 18 }}>Please use at least 8 characters. This will be your sign-in password for your trainer dashboard once your application is approved; there is no need to wait for a separate email with a temporary password.</p>
 
       <div className="field">
         <label>Your photo <span className="hint">(shown on your trainer profile)</span></label>
@@ -190,7 +190,7 @@ export default function TeachForm({ categories }) {
       <div style={{ borderTop: "1px solid var(--line)", margin: "24px 0" }} />
 
       <h3 style={{ marginBottom: 4 }}>Propose session(s)</h3>
-      <p className="hint" style={{ marginBottom: 16 }}>Optional — propose one or more sessions now with 3 possible time slots each, or skip this and we&apos;ll follow up.</p>
+      <p className="hint" style={{ marginBottom: 16 }}>This step is optional. You may propose one or more sessions now, each with three possible time slots, or skip this step and we will follow up with you.</p>
 
       {proposals.map((p, idx) => (
         <div key={idx} className="proposal-card" style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 18, marginBottom: 16 }}>
@@ -222,7 +222,7 @@ export default function TeachForm({ categories }) {
       <div className="field">
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
           <input type="checkbox" checked={profile.consent} onChange={(e) => update("consent", e.target.checked)} style={{ width: "auto" }} />
-          I've read the <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>, and I consent to Vidyam storing my application details.
+          I confirm that I have read the <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>, and consent to Vidyam storing my application details.
         </label>
       </div>
 

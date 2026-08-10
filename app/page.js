@@ -49,7 +49,7 @@ export default async function HomePage() {
         <img className="hero-logo" src="/logo.png" alt="Vidyam" />
         <span className="eyebrow"><span className="eyebrow-dot"></span>Learn. Simulate. Become.</span>
         <h1 className="hero-title">A learning month for<span className="line2 grad-text">everyone, exactly as you are</span></h1>
-        <p className="hero-sub">100% free and open to all — whatever your background, experience level, or stage of learning. One free program at a time, led by trainers and mentors who volunteer their time and craft, with flexible formats and timings so more people can take part. New programs are added every week, so there&apos;s always a fresh place to start.</p>
+        <p className="hero-sub">Vidyam Learning Month is a free initiative, open to everyone regardless of background, experience, or stage of learning. Programs are led by trainers and mentors who generously volunteer their time and expertise, with flexible formats and timings designed for broad participation. New programs are added every week, so there is always a good time to begin.</p>
         <div className="hero-ctas">
           <a className="pill pill-grad" href="/join">Join a program</a>
           <a className="pill pill-ghost" href="/teach">Become a trainer / mentor</a>
@@ -63,10 +63,10 @@ export default async function HomePage() {
 
       <div className="wrap">
         <div className="value-grid">
-          <div className="value-card"><div className="value-icon">🎯</div><h3>Bite-sized, live</h3><p>60–90 minute sessions you can attend after work — no multi-week course commitment.</p></div>
-          <div className="value-card"><div className="value-icon">🗂️</div><h3>Register once, join many</h3><p>Pick as many programs as you like in a single form — no repeating your details each time.</p></div>
-          <div className="value-card"><div className="value-icon">🧑‍🏫</div><h3>Practitioners, not slides</h3><p>Trainers are working professionals teaching what they actually do, with real profiles you can review.</p></div>
-          <div className="value-card"><div className="value-icon">🤝</div><h3>Community, not content</h3><p>Built around peer support and shared learning, not a funnel — everyone&apos;s welcome.</p></div>
+          <div className="value-card"><div className="value-icon">🎯</div><h3>Bite-sized, live</h3><p>Each session runs 60–90 minutes and can be attended after work, with no multi-week course commitment required.</p></div>
+          <div className="value-card"><div className="value-icon">🗂️</div><h3>Register once, join many</h3><p>Please select as many programs as you would like in a single form, without needing to repeat your details each time.</p></div>
+          <div className="value-card"><div className="value-icon">🧑‍🏫</div><h3>Practitioners, not slides</h3><p>Our trainers are working professionals teaching what they do in practice, and each has a profile you are welcome to review.</p></div>
+          <div className="value-card"><div className="value-icon">🤝</div><h3>Community, not content</h3><p>Designed around peer support and shared learning rather than a sales funnel — everyone is welcome to take part.</p></div>
         </div>
 
         {courses.map((course) => {
@@ -99,7 +99,7 @@ export default async function HomePage() {
               <h2>Meet your trainers</h2>
               <Link href="/trainers" className="pill pill-ghost pill-sm">See all trainers</Link>
             </div>
-            <p className="section-sub">Working professionals who volunteer their time and craft to teach what they actually do.</p>
+            <p className="section-sub">Working professionals who generously volunteer their time and expertise to teach what they do in practice.</p>
             <div className="trainer-mini-grid">
               {trainers.map((t) => (
                 <Link key={t.id} href={`/trainers/${t.id}`} className="trainer-mini-card">
@@ -124,7 +124,7 @@ export default async function HomePage() {
             <div className="section-head">
               <h2>Past programs</h2>
             </div>
-            <p className="section-sub">Missed one live? Recordings and materials are still here.</p>
+            <p className="section-sub">If you were unable to join a session live, recordings and materials remain available here.</p>
             <div className="grid" style={{ marginBottom: 56 }}>
               {past.map((s) => (
                 <Link key={s.id} href={`/programs/${s.id}`} className="card" style={{ "--cat-color": s.category_color, textDecoration: "none" }}>

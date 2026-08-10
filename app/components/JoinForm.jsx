@@ -71,7 +71,7 @@ export default function JoinForm({ sessions, categories }) {
       return;
     }
     if (n === 3 && (selectedSessions.length === 0 || !profile.name.trim() || !profile.email.trim())) {
-      setError("Pick at least one program and fill in your name and email before continuing.");
+      setError("Please select at least one program and provide your name and email before continuing.");
       return;
     }
     setError("");
@@ -104,13 +104,13 @@ export default function JoinForm({ sessions, categories }) {
   if (success) {
     return (
       <div className="form-card" style={{ margin: "0 auto 56px", textAlign: "center" }}>
-        <h2>You&apos;re in! 🎉</h2>
+        <h2>Thank you for registering</h2>
         <p style={{ color: "var(--navy-soft)" }}>
-          You&apos;re registered for {selectedSessions.length} program{selectedSessions.length > 1 ? "s" : ""}. We&apos;ll be in touch with joining details closer to each session.
+          You have been registered for {selectedSessions.length} program{selectedSessions.length > 1 ? "s" : ""}. We will share the joining details closer to each session.
         </p>
         {waitlistedFor.length > 0 && (
           <p style={{ color: "var(--orange-deep)", fontWeight: 600 }}>
-            {waitlistedFor.length} of these {waitlistedFor.length > 1 ? "are" : "is"} full right now, so you&apos;ve been added to the waitlist — we&apos;ll notify you if a spot opens up.
+            {waitlistedFor.length} of these {waitlistedFor.length > 1 ? "have" : "has"} reached full capacity, so you have been added to the waitlist. We will notify you as soon as a spot becomes available.
           </p>
         )}
       </div>
@@ -141,7 +141,7 @@ export default function JoinForm({ sessions, categories }) {
               ))}
             </div>
             <p className="hint" style={{ display: "block", marginTop: 6 }}>
-              We ask this first so the rest of the form only shows what&apos;s relevant to you.
+              We ask this at the outset so the remaining questions can be tailored to your profile.
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export default function JoinForm({ sessions, categories }) {
               </div>
               {profile.profileType === "other" && (
                 <div className="field">
-                  <label>Tell us a bit about your group</label>
+                  <label>Please tell us a little about your group</label>
                   <textarea value={profile.orgDetail} onChange={(e) => update("orgDetail", e.target.value)} />
                 </div>
               )}
@@ -174,8 +174,8 @@ export default function JoinForm({ sessions, categories }) {
                 </div>
               )}
               <p className="hint" style={{ display: "block", marginTop: 4 }}>
-                You&apos;re still registering just for yourself — we&apos;ll never share your individual details with your
-                organization, only an aggregate summary if you&apos;d like us to.
+                You are still registering on your own behalf. We will not share your individual details with your
+                organization; at most, we may share an aggregate summary, should you wish us to do so.
               </p>
             </div>
           )}
@@ -288,7 +288,7 @@ export default function JoinForm({ sessions, categories }) {
           <div className="field">
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
               <input type="checkbox" checked={profile.consent} onChange={(e) => update("consent", e.target.checked)} style={{ width: "auto" }} />
-              I agree to be contacted about these programs, and I&apos;ve read the{" "}
+              I agree to be contacted regarding these programs, and confirm that I have read the{" "}
               <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>.
             </label>
           </div>

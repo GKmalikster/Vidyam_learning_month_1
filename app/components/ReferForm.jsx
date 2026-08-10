@@ -30,7 +30,7 @@ export default function ReferForm({ categories }) {
   async function submit() {
     setError("");
     if (!referrer.name.trim() || !referrer.email.trim()) {
-      setError("Your name and email are required.");
+      setError("Please provide your name and email.");
       return;
     }
     if (!referrer.consent) {
@@ -39,7 +39,7 @@ export default function ReferForm({ categories }) {
     }
     const complete = referrals.filter((r) => r.name.trim() && (r.email.trim() || r.phone.trim()));
     if (complete.length === 0) {
-      setError("Add at least one person to refer, with a name and an email or phone number.");
+      setError("Please add at least one person to refer, including their name and either an email address or phone number.");
       return;
     }
 
@@ -68,10 +68,10 @@ export default function ReferForm({ categories }) {
   if (success) {
     return (
       <div className="form-card" style={{ margin: "0 auto 56px", textAlign: "center" }}>
-        <h2>Thank you! 🙌</h2>
+        <h2>Thank you for your referral</h2>
         <p style={{ color: "var(--navy-soft)" }}>
-          We&apos;ve sent a personal invitation to the people you referred. If they apply, you&apos;ll get the credit —
-          and a thank-you from us.
+          We have sent a personal invitation to the individuals you referred. Should they apply, you will receive
+          credit, along with our thanks.
         </p>
       </div>
     );
@@ -94,8 +94,8 @@ export default function ReferForm({ categories }) {
       </div>
 
       <div style={{ borderTop: "1px solid var(--line)", margin: "20px 0 14px" }} />
-      <h3 style={{ marginBottom: 4 }}>Who should we invite?</h3>
-      <p className="hint" style={{ marginBottom: 16 }}>Refer as many people as you like — each gets their own personal invitation.</p>
+      <h3 style={{ marginBottom: 4 }}>Who would you like to invite?</h3>
+      <p className="hint" style={{ marginBottom: 16 }}>You may refer as many people as you like; each will receive their own personal invitation.</p>
 
       {referrals.map((r, idx) => (
         <div key={idx} className="proposal-card" style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 18, marginBottom: 16 }}>
@@ -108,7 +108,7 @@ export default function ReferForm({ categories }) {
             <div className="field"><label>Their email</label><input type="email" value={r.email} onChange={(e) => updateReferral(idx, "email", e.target.value)} /></div>
             <div className="field"><label>Their phone</label><input type="tel" value={r.phone} onChange={(e) => updateReferral(idx, "phone", e.target.value)} /></div>
           </div>
-          <p className="hint" style={{ display: "block", marginBottom: 10 }}>At least an email or phone number.</p>
+          <p className="hint" style={{ display: "block", marginBottom: 10 }}>Please provide at least an email address or phone number.</p>
           <div className="field">
             <label>Area of expertise</label>
             <select value={r.categoryId} onChange={(e) => updateReferral(idx, "categoryId", Number(e.target.value))}>
@@ -124,7 +124,7 @@ export default function ReferForm({ categories }) {
       <div className="field">
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
           <input type="checkbox" checked={referrer.consent} onChange={(e) => updateReferrer("consent", e.target.checked)} style={{ width: "auto" }} />
-          I have each person&apos;s permission to share their contact details with Vidyam for this invitation. I&apos;ve read the{" "}
+          I confirm that I have each person&apos;s permission to share their contact details with Vidyam for this invitation, and that I have read the{" "}
           <Link href="/terms" target="_blank">Terms</Link> &amp; <Link href="/privacy" target="_blank">Privacy Policy</Link>.
         </label>
       </div>
