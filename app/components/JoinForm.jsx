@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 
 const STEP_HINTS = {
-  1: "Pick your programs",
-  2: "Tell us about yourself",
+  1: "How are you joining us?",
+  2: "Pick your programs",
   3: "A little more, so trainers understand their audience",
 };
 
@@ -66,7 +66,11 @@ export default function JoinForm({ sessions, categories }) {
   }
 
   function goStep(n) {
-    if (n === 2 && (selectedSessions.length === 0 || !profile.name.trim() || !profile.email.trim())) {
+    if (n === 2 && profile.profileType !== "individual" && !profile.orgName.trim()) {
+      setError("Please tell us the name of your organization before continuing.");
+      return;
+    }
+    if (n === 3 && (selectedSessions.length === 0 || !profile.name.trim() || !profile.email.trim())) {
       setError("Pick at least one program and fill in your name and email before continuing.");
       return;
     }
@@ -128,38 +132,6 @@ export default function JoinForm({ sessions, categories }) {
       {step === 1 && (
         <div className="wizard-step active">
           <div className="field">
-            <label>Which programs would you like to join? <span className="hint">(select as many as you like)</span></label>
-            <div className="chip-row">
-              {sessions.map((s) => (
-                <div
-                  key={s.id}
-                  className={`chip ${selectedSessions.includes(s.id) ? "selected" : ""}`}
-                  onClick={() => toggleSession(s.id)}
-                >
-                  {s.title}
-                </div>
-              ))}
-              {sessions.length === 0 && <div className="empty-note">No programs open for registration yet.</div>}
-            </div>
-          </div>
-          <div className="field">
-            <label>Full name *</label>
-            <input type="text" value={profile.name} onChange={(e) => update("name", e.target.value)} />
-          </div>
-          <div className="field">
-            <label>Email *</label>
-            <input type="email" value={profile.email} onChange={(e) => update("email", e.target.value)} />
-          </div>
-          <div className="wizard-nav">
-            <span />
-            <button className="pill pill-primary" onClick={() => goStep(2)}>Continue</button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="wizard-step active">
-          <div className="field">
             <label>How are you joining us?</label>
             <div className="chip-row">
               {PROFILE_TYPES.map((p) => (
@@ -168,6 +140,9 @@ export default function JoinForm({ sessions, categories }) {
                 </div>
               ))}
             </div>
+            <p className="hint" style={{ display: "block", marginTop: 6 }}>
+              We ask this first so the rest of the form only shows what&apos;s relevant to you.
+            </p>
           </div>
 
           {profile.profileType !== "individual" && (
@@ -205,6 +180,38 @@ export default function JoinForm({ sessions, categories }) {
             </div>
           )}
 
+          <div className="wizard-nav">
+            <span />
+            <button className="pill pill-primary" onClick={() => goStep(2)}>Continue</button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="wizard-step active">
+          <div className="field">
+            <label>Which programs would you like to join? <span className="hint">(select as many as you like)</span></label>
+            <div className="chip-row">
+              {sessions.map((s) => (
+                <div
+                  key={s.id}
+                  className={`chip ${selectedSessions.includes(s.id) ? "selected" : ""}`}
+                  onClick={() => toggleSession(s.id)}
+                >
+                  {s.title}
+                </div>
+              ))}
+              {sessions.length === 0 && <div className="empty-note">No programs open for registration yet.</div>}
+            </div>
+          </div>
+          <div className="field">
+            <label>Full name *</label>
+            <input type="text" value={profile.name} onChange={(e) => update("name", e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Email *</label>
+            <input type="email" value={profile.email} onChange={(e) => update("email", e.target.value)} />
+          </div>
           <div className="field"><label>Phone</label><input type="tel" value={profile.phone} onChange={(e) => update("phone", e.target.value)} /></div>
           <div className="field"><label>City</label><input type="text" value={profile.city} onChange={(e) => update("city", e.target.value)} /></div>
           <div className="field">
@@ -226,7 +233,7 @@ export default function JoinForm({ sessions, categories }) {
           )}
           <div className="wizard-nav">
             <button className="pill pill-ghost" onClick={() => setStep(1)}>Back</button>
-            <button className="pill pill-primary" onClick={() => setStep(3)}>Continue</button>
+            <button className="pill pill-primary" onClick={() => goStep(3)}>Continue</button>
           </div>
         </div>
       )}

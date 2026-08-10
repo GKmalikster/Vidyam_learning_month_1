@@ -6,7 +6,7 @@ import db from "@/lib/db";
 // application's pending -> approved pattern (see /api/trainers/apply).
 export async function POST(request) {
   const body = await request.json();
-  const { name, contactName, email, phone, capacities, depth, offer, hopeFor, timeline } = body;
+  const { name, contactName, email, phone, capacities, depth, offerings, offer, hopeFor, timeline } = body;
 
   if (!name || !email) {
     return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
@@ -16,11 +16,11 @@ export async function POST(request) {
   }
 
   const row = await db.queryOne(
-    `INSERT INTO partners (name, contact_name, email, phone, capacities, depth, offer, hope_for, timeline, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending') RETURNING id`,
+    `INSERT INTO partners (name, contact_name, email, phone, capacities, depth, offerings, offer, hope_for, timeline, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending') RETURNING id`,
     [
       name, contactName || "", email, phone || "", JSON.stringify(capacities),
-      depth || "friend", offer || "", hopeFor || "", timeline || "",
+      depth || "friend", JSON.stringify(offerings || []), offer || "", hopeFor || "", timeline || "",
     ]
   );
 

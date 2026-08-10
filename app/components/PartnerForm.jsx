@@ -15,11 +15,28 @@ const CAPACITIES = [
   "Individual Champion / Ambassador",
 ];
 
+// Concrete, checkable things a partner can contribute — replaces a single
+// freeform "what can you offer" textarea, which produced answers too varied
+// to scan or filter on in the console. Free text is still available below
+// for anything that doesn't fit these buckets.
+const OFFERINGS = [
+  "Venue / classroom space",
+  "Students / participants",
+  "Trainers / mentors",
+  "Laboratory / equipment access",
+  "Funding / sponsorship",
+  "Curriculum / content",
+  "Technology / platform",
+  "Media & promotion",
+  "Volunteers",
+];
+
 export default function PartnerForm() {
   const [form, setForm] = useState({
     name: "", contactName: "", email: "", phone: "", depth: "friend", offer: "", hopeFor: "", timeline: "", consent: false,
   });
   const [capacities, setCapacities] = useState([]);
+  const [offerings, setOfferings] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -29,6 +46,9 @@ export default function PartnerForm() {
   }
   function toggleCapacity(c) {
     setCapacities((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  }
+  function toggleOffering(o) {
+    setOfferings((prev) => (prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o]));
   }
 
   async function submit() {
@@ -51,7 +71,7 @@ export default function PartnerForm() {
       const res = await fetch("/api/partners/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formToSend, capacities }),
+        body: JSON.stringify({ ...formToSend, capacities, offerings }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -107,7 +127,17 @@ export default function PartnerForm() {
         </select>
       </div>
 
-      <div className="field"><label>What can you offer?</label><textarea value={form.offer} onChange={(e) => update("offer", e.target.value)} /></div>
+      <div className="field">
+        <label>What can you offer? <span className="hint">(select any)</span></label>
+        <div className="chip-row">
+          {OFFERINGS.map((o) => (
+            <div key={o} className={`chip ${offerings.includes(o) ? "selected" : ""}`} onClick={() => toggleOffering(o)}>
+              {o}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="field"><label>Anything else you can offer? <span className="hint">(optional)</span></label><textarea value={form.offer} onChange={(e) => update("offer", e.target.value)} /></div>
       <div className="field"><label>What are you hoping to get out of partnering with Vidyam?</label><textarea value={form.hopeFor} onChange={(e) => update("hopeFor", e.target.value)} /></div>
       <div className="field"><label>Timeline <span className="hint">(optional)</span></label><input type="text" placeholder="e.g. Ready to start this month" value={form.timeline} onChange={(e) => update("timeline", e.target.value)} /></div>
 

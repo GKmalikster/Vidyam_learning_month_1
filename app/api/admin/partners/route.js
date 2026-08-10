@@ -6,6 +6,10 @@ import db from "@/lib/db";
 // pattern as the trainers tab.
 export async function GET() {
   const rows = await db.queryAll("SELECT * FROM partners ORDER BY created_at DESC");
-  const partners = rows.map((p) => ({ ...p, capacities: JSON.parse(p.capacities || "[]") }));
+  const partners = rows.map((p) => ({
+    ...p,
+    capacities: JSON.parse(p.capacities || "[]"),
+    offerings: JSON.parse(p.offerings || "[]"),
+  }));
   return NextResponse.json(partners);
 }

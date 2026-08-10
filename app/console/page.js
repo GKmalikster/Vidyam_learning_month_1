@@ -740,7 +740,12 @@ function PartnersTab({ partners, refresh }) {
               {p.capacities.map((c) => <span key={c} className="badge pending" style={{ fontSize: 11.5 }}>{c}</span>)}
             </div>
             <div className="hint" style={{ display: "block", marginBottom: 4 }}>Depth: {p.depth === "structured" ? "Structured MOU-style partner" : "Friend of Vidyam"}{p.timeline ? ` · Timeline: ${p.timeline}` : ""}</div>
-            {p.offer && <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}><b>Can offer:</b> {p.offer}</p>}
+            {p.offerings?.length > 0 && (
+              <div style={{ margin: "6px 0", display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {p.offerings.map((o) => <span key={o} className="badge approved" style={{ fontSize: 11.5 }}>{o}</span>)}
+              </div>
+            )}
+            {p.offer && <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}><b>Also offers:</b> {p.offer}</p>}
             {p.hope_for && <p style={{ fontSize: 13.5, color: "var(--navy-soft)" }}><b>Hoping for:</b> {p.hope_for}</p>}
             <div className="field" style={{ marginBottom: 10 }}>
               <label>Review notes <span className="hint">(optional, saved with your decision)</span></label>
