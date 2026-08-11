@@ -54,20 +54,20 @@ nav{position:sticky;top:0;z-index:40;background:rgba(255,255,255,0.94);backdrop-
 
 /* HERO — soft Vidyam-colour wash, no hard edges */
 .hero{
-  padding:64px 0 40px;
+  padding:22px 0 18px;
   text-align:center;
   background:
     radial-gradient(ellipse 900px 500px at 0% 0%, rgba(254,133,2,0.07), transparent 60%),
     radial-gradient(ellipse 900px 500px at 100% 30%, rgba(0,106,253,0.06), transparent 60%);
 }
-.hero-logo{display:block;height:280px;width:auto;margin:0 auto 24px;}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:12px;font-weight:700;letter-spacing:0.6px;color:var(--navy-soft);margin-bottom:26px;text-transform:uppercase;}
+.hero-logo{display:block;height:110px;width:auto;margin:0 auto 8px;}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:0.6px;color:var(--navy-soft);margin-bottom:10px;text-transform:uppercase;}
 .eyebrow-dot{width:8px;height:8px;border-radius:50%;background:var(--orange);flex-shrink:0;}
-.hero-title{font-size:52px;font-weight:800;line-height:1.18;margin:0 0 22px;color:var(--navy);max-width:820px;margin-left:auto;margin-right:auto;letter-spacing:-0.5px;}
+.hero-title{font-size:34px;font-weight:800;line-height:1.14;margin:0 0 10px;color:var(--navy);max-width:820px;margin-left:auto;margin-right:auto;letter-spacing:-0.5px;}
 .hero-title .line2{display:block;}
 .grad-text{color:var(--orange);}
-.hero-sub{font-size:16.5px;color:var(--navy-soft);max-width:560px;line-height:1.65;margin:0 auto 34px;}
-.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:56px;}
+.hero-sub{font-size:14.5px;color:var(--navy-soft);max-width:740px;line-height:1.5;margin:0 auto 16px;}
+.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;}
 .pill-grad{background:var(--grad);color:#fff;border:none;}
 .statrow{display:flex;justify-content:center;gap:64px;flex-wrap:wrap;max-width:800px;margin:0 auto;}
 .stat{text-align:center;}
@@ -241,7 +241,7 @@ footer{border-top:1px solid var(--line);padding:30px 0;text-align:center;color:v
   .wizard-nav button{width:100%;}
   .slot-row{grid-template-columns:1fr;}
   .hero-title{font-size:26px;}
-  .hero-logo{height:200px;}
+  .hero-logo{height:120px;}
   .trainer-grid,.value-grid{grid-template-columns:1fr;}
   .statrow{gap:20px;}
 }
