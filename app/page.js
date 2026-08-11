@@ -48,8 +48,8 @@ export default async function HomePage() {
       <div className="hero">
         <img className="hero-logo" src="/logo.png" alt="Vidyam" />
         <span className="eyebrow"><span className="eyebrow-dot"></span>Learn. Simulate. Become.</span>
-        <h1 className="hero-title">A learning month for<span className="line2 grad-text">everyone, exactly as you are</span></h1>
-        <p className="hero-sub">Vidyam Learning Month is a free initiative, open to everyone regardless of background, experience, or stage of learning. Programs are led by trainers and mentors who generously volunteer their time and expertise, with flexible formats and timings designed for broad participation. New programs are added every week, so there is always a good time to begin.</p>
+        <h1 className="hero-title">A world of learning,<span className="line2 grad-text">for everyone</span></h1>
+        <p className="hero-sub">Vidyam is a free learning initiative for everyone, no matter your background, experience, or where you are in your learning journey. Our trainers and mentors generously volunteer their time and expertise, offering programs in flexible formats and at convenient timings so more people can participate. With new programs added every week, there is always something new to explore, and no better time to begin than now.</p>
         <div className="hero-ctas">
           <a className="pill pill-grad" href="/join">Join a program</a>
           <a className="pill pill-ghost" href="/teach">Become a trainer / mentor</a>
