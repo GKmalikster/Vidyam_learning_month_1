@@ -7,6 +7,7 @@ export default function Footer() {
       <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
         <Link href="/partner" style={{ color: "var(--navy-soft)" }}>Partner with us</Link>
         <Link href="/refer" style={{ color: "var(--navy-soft)" }}>Refer a trainer</Link>
+        <Link href="/learner/login" style={{ color: "var(--navy-soft)" }}>Learner sign in</Link>
         <Link href="/trainer/login" style={{ color: "var(--navy-soft)" }}>Trainer sign in</Link>
         <Link href="/terms" style={{ color: "var(--navy-soft)" }}>Terms &amp; Conditions</Link>
         <Link href="/privacy" style={{ color: "var(--navy-soft)" }}>Privacy Policy</Link>

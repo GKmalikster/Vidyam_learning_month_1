@@ -51,6 +51,9 @@ export default function JoinForm({ sessions, categories }) {
     profileType: "individual", orgName: "", orgRole: "", orgDetail: "",
   });
   const [corporateModes, setCorporateModes] = useState([]);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [accountCreated, setAccountCreated] = useState(false);
 
   function toggleSession(id) {
     setSelectedSessions((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -79,13 +82,23 @@ export default function JoinForm({ sessions, categories }) {
   }
 
   async function submit() {
+    if (password && password.length > 0) {
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords don't match.");
+        return;
+      }
+    }
     setSubmitting(true);
     setError("");
     try {
       const res = await fetch("/api/registrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionIds: selectedSessions, ...profile, interests: selectedInterests, corporateModes }),
+        body: JSON.stringify({ sessionIds: selectedSessions, ...profile, interests: selectedInterests, corporateModes, password, confirmPassword }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -93,6 +106,7 @@ export default function JoinForm({ sessions, categories }) {
       }
       const result = await res.json();
       setWaitlistedFor(result.waitlistedFor || []);
+      setAccountCreated(!!result.accountCreated);
       setSuccess(true);
     } catch (e) {
       setError(e.message);
@@ -111,6 +125,11 @@ export default function JoinForm({ sessions, categories }) {
         {waitlistedFor.length > 0 && (
           <p style={{ color: "var(--orange-deep)", fontWeight: 600 }}>
             {waitlistedFor.length} of these {waitlistedFor.length > 1 ? "have" : "has"} reached full capacity, so you have been added to the waitlist. We will notify you as soon as a spot becomes available.
+          </p>
+        )}
+        {accountCreated && (
+          <p style={{ color: "var(--navy-soft)" }}>
+            Your dashboard is ready — <Link href="/learner/login" style={{ color: "var(--blue)", fontWeight: 600 }}>sign in</Link> anytime to see your programs and join new ones in one click, without filling out this form again.
           </p>
         )}
       </div>
@@ -211,6 +230,14 @@ export default function JoinForm({ sessions, categories }) {
           <div className="field">
             <label>Email *</label>
             <input type="email" value={profile.email} onChange={(e) => update("email", e.target.value)} />
+          </div>
+          <div className="proposal-card" style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 16, marginBottom: 18 }}>
+            <label style={{ fontWeight: 600, display: "block", marginBottom: 4 }}>Set a password <span className="hint">(optional)</span></label>
+            <p className="hint" style={{ display: "block", marginBottom: 12 }}>
+              This creates a dashboard where you can see the programs you have joined and register for new ones in one click, without filling out this form again. Leave blank to register as a guest.
+            </p>
+            <div className="field"><label>Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+            <div className="field"><label>Confirm password</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></div>
           </div>
           <div className="field"><label>Phone</label><input type="tel" value={profile.phone} onChange={(e) => update("phone", e.target.value)} /></div>
           <div className="field"><label>City</label><input type="text" value={profile.city} onChange={(e) => update("city", e.target.value)} /></div>

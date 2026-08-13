@@ -20,6 +20,7 @@ import { NextResponse } from "next/server";
 
 const ADMIN_SESSION_COOKIE = "vidyam_admin_session";
 const TRAINER_SESSION_COOKIE = "vidyam_trainer_session";
+const LEARNER_SESSION_COOKIE = "vidyam_learner_session";
 
 function getSecret() {
   return process.env.SESSION_SECRET || "dev-only-insecure-secret-change-me-in-production";
@@ -77,6 +78,10 @@ export async function middleware(request) {
   const isTrainerApi = pathname.startsWith("/api/trainer") && !pathname.startsWith("/api/trainer-auth");
   const isTrainerArea = pathname.startsWith("/trainer");
 
+  const isLearnerLoginPage = pathname === "/learner/login";
+  const isLearnerApi = pathname.startsWith("/api/learner") && !pathname.startsWith("/api/learner-auth");
+  const isLearnerArea = pathname.startsWith("/learner");
+
   if (isConsole || isAdminApi) {
     if (isAdminLoginPage) return NextResponse.next();
     const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
@@ -99,9 +104,20 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
+  if (isLearnerArea || isLearnerApi) {
+    if (isLearnerLoginPage) return NextResponse.next();
+    const token = request.cookies.get(LEARNER_SESSION_COOKIE)?.value;
+    const session = await verifySessionToken(token);
+    if (!session) {
+      if (isLearnerApi) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.redirect(new URL("/learner/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/console/:path*", "/api/admin/:path*", "/trainer/:path*", "/api/trainer/:path*"],
+  matcher: ["/console/:path*", "/api/admin/:path*", "/trainer/:path*", "/api/trainer/:path*", "/learner/:path*", "/api/learner/:path*"],
 };
