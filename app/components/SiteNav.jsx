@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,6 +18,16 @@ const NAV = [
 
 export default function SiteNav() {
   const pathname = usePathname();
+  const [signinOpen, setSigninOpen] = useState(false);
+  const signinRef = useRef(null);
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (signinRef.current && !signinRef.current.contains(e.target)) setSigninOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   return (
     <>
@@ -35,6 +46,17 @@ export default function SiteNav() {
               {item.label}
             </Link>
           ))}
+          <div className="signin-dropdown" ref={signinRef}>
+            <button type="button" className={signinOpen ? "active" : ""} onClick={() => setSigninOpen((o) => !o)}>
+              Sign in ▾
+            </button>
+            {signinOpen && (
+              <div className="signin-menu">
+                <Link href="/learner/login" onClick={() => setSigninOpen(false)}>Learner sign in</Link>
+                <Link href="/trainer/login" onClick={() => setSigninOpen(false)}>Trainer sign in</Link>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
       <div className="tabbar">
@@ -44,6 +66,10 @@ export default function SiteNav() {
             {item.tabLabel || item.label}
           </Link>
         ))}
+        <Link href="/learner/login" className={pathname === "/learner/login" ? "active" : ""}>
+          <span className="ic">🔑</span>
+          Sign in
+        </Link>
       </div>
     </>
   );
