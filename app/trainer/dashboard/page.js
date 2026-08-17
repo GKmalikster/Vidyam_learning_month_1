@@ -7,6 +7,7 @@ import DashShell from "../../components/DashShell";
 const NAV = [
   { id: "overview", label: "Overview", icon: "📊" },
   { id: "sessions", label: "My sessions", icon: "🗓️" },
+  { id: "courses", label: "My courses", icon: "📚" },
   { id: "propose", label: "Propose a session", icon: "➕" },
   { id: "availability", label: "Availability", icon: "🕒" },
   { id: "profile", label: "My profile", icon: "🧑‍🏫" },
@@ -70,9 +71,15 @@ export default function TrainerDashboard() {
       {trainer.mustReset && <SetPasswordBanner onDone={() => setTrainer({ ...trainer, mustReset: false })} />}
       {tab === "overview" && <OverviewTab sessions={upcoming} />}
       {tab === "sessions" && <SessionsTab sessions={sessions} refresh={refresh} />}
+      {tab === "courses" && <CoursesTab />}
       {tab === "propose" && <ProposeTab categories={categories} refresh={refresh} setTab={setTab} />}
       {tab === "availability" && <AvailabilityTab />}
-      {tab === "profile" && <ProfileTab trainer={trainer} categories={categories} refresh={refresh} />}
+      {tab === "profile" && (
+        <>
+          <ProfileTab trainer={trainer} categories={categories} refresh={refresh} />
+          <ChangePasswordPanel endpoint="/api/trainer-auth/change-password" />
+        </>
+      )}
     </DashShell>
   );
 }
@@ -237,6 +244,72 @@ function SessionManagePanel({ session, refresh }) {
   );
 }
 
+function CoursesTab() {
+  const [courses, setCourses] = useState(null);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    jsonFetch("/api/trainer/courses").then(setCourses).catch((e) => setError(e.message));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  function readFile(file, onDone) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => onDone(reader.result);
+    reader.readAsDataURL(file);
+  }
+
+  async function setCourseImage(id, field, dataUrl) {
+    setError("");
+    try {
+      await jsonFetch(`/api/trainer/courses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: dataUrl }),
+      });
+      load();
+    } catch (e) { setError(e.message); }
+  }
+
+  return (
+    <Panel title={`Courses you're part of ${courses ? `(${courses.length})` : ""}`}>
+      <p className="hint" style={{ display: "block", marginBottom: 14 }}>
+        You can update the cover and preview images for any course one of your sessions belongs to. Title, description and publishing stay admin-managed.
+      </p>
+      {error && <div className="empty-note" style={{ borderColor: "#e0554a", color: "#c0392b", marginBottom: 14 }}>{error}</div>}
+      {!courses && <div className="hint">Loading…</div>}
+      {courses && courses.length === 0 && <div className="empty-note">None of your sessions are part of a course yet.</div>}
+      {courses && courses.map((c) => (
+        <div key={c.id} className="proposal-card">
+          <div className="proposal-card-head">
+            <b>{c.title}</b>
+            <span className={`badge ${c.status === "published" ? "approved" : "pending"}`}>{c.status}</span>
+          </div>
+          {c.description && <p style={{ fontSize: 13, color: "var(--navy-soft)" }}>{c.description}</p>}
+          <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {c.image ? <img src={c.image} alt="" style={{ width: 56, height: 34, objectFit: "cover", borderRadius: 6 }} /> : <div style={{ width: 56, height: 34, background: "var(--panel)", borderRadius: 6 }} />}
+              <label className="pill pill-ghost pill-sm" style={{ cursor: "pointer" }}>
+                {c.image ? "Change cover" : "Add cover image"}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => readFile(e.target.files?.[0], (dataUrl) => setCourseImage(c.id, "image", dataUrl))} />
+              </label>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {c.preview_image ? <img src={c.preview_image} alt="" style={{ width: 56, height: 34, objectFit: "cover", borderRadius: 6 }} /> : <div style={{ width: 56, height: 34, background: "var(--panel)", borderRadius: 6 }} />}
+              <label className="pill pill-ghost pill-sm" style={{ cursor: "pointer" }}>
+                {c.preview_image ? "Change preview" : "Add preview image"}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => readFile(e.target.files?.[0], (dataUrl) => setCourseImage(c.id, "previewImage", dataUrl))} />
+              </label>
+            </div>
+          </div>
+        </div>
+      ))}
+    </Panel>
+  );
+}
+
 function ProposeTab({ categories, refresh, setTab }) {
   const [form, setForm] = useState({ title: "", categoryId: categories[0]?.id || "", brief: "", capacity: "", slots: [{ date: "", time: "" }, { date: "", time: "" }, { date: "", time: "" }] });
   const [error, setError] = useState("");
@@ -355,6 +428,8 @@ function ProfileTab({ trainer, refresh }) {
 
   return (
     <Panel title="Your public profile">
+      <div className="field"><label>Name</label><input value={trainer.name} disabled /></div>
+      <div className="field"><label>Email</label><input value={trainer.email} disabled /></div>
       <div className="photo-upload-row" style={{ marginBottom: 18 }}>
         <div className="photo-preview">
           {form.photo ? <img src={form.photo} alt="" /> : "🧑‍🏫"}
@@ -386,6 +461,41 @@ function ProfileTab({ trainer, refresh }) {
         </div>
       </div>
       <button className="pill pill-primary" onClick={save}>Save profile</button>
+      {saved && <span style={{ color: "#227722", fontSize: 13, marginLeft: 12 }}>Saved ✓</span>}
+    </Panel>
+  );
+}
+
+function ChangePasswordPanel({ endpoint }) {
+  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setError("");
+    if (form.newPassword.length < 8) { setError("New password must be at least 8 characters."); return; }
+    if (form.newPassword !== form.confirmPassword) { setError("New passwords don't match."); return; }
+    setSaving(true);
+    try {
+      await jsonFetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Panel title="Change password">
+      {error && <div className="empty-note" style={{ borderColor: "#e0554a", color: "#c0392b", marginBottom: 14 }}>{error}</div>}
+      <div className="field"><label>Current password</label><input type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} /></div>
+      <div className="field"><label>New password</label><input type="password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} /></div>
+      <div className="field"><label>Confirm new password</label><input type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} /></div>
+      <button className="pill pill-primary" disabled={saving} onClick={save}>{saving ? "Saving…" : "Update password"}</button>
       {saved && <span style={{ color: "#227722", fontSize: 13, marginLeft: 12 }}>Saved ✓</span>}
     </Panel>
   );
