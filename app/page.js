@@ -72,17 +72,23 @@ export default async function HomePage() {
         {courses.map((course) => {
           const steps = courseSessions.filter((s) => s.course_id === course.id);
           return (
-            <div className="course-band" key={course.id} style={{ "--cat-color": course.category_color }}>
-              <div className="course-eyebrow">Multi-part course</div>
-              <h3>{course.title}</h3>
-              <p>{course.description}</p>
-              <div className="course-steps">
-                {steps.map((s, i) => (
-                  <Link key={s.id} href={`/programs/${s.id}`} className="course-step" style={{ textDecoration: "none", color: "inherit" }}>
-                    <span className="course-step-num">{i + 1}</span>
-                    <span><b>{s.title}</b><br />{s.date || "Date TBC"}</span>
-                  </Link>
-                ))}
+            <div className="course-band" key={course.id} style={{ "--cat-color": course.category_color, display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+              {course.preview_image && (
+                <img src={course.preview_image} alt="" style={{ width: 140, height: 100, objectFit: "cover", borderRadius: 12, flexShrink: 0 }} />
+              )}
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <div className="course-eyebrow">Multi-part course</div>
+                <h3><Link href={`/courses/${course.id}`} style={{ color: "inherit", textDecoration: "none" }}>{course.title}</Link></h3>
+                <p>{course.description}</p>
+                <div className="course-steps">
+                  {steps.map((s, i) => (
+                    <Link key={s.id} href={`/programs/${s.id}`} className="course-step" style={{ textDecoration: "none", color: "inherit" }}>
+                      <span className="course-step-num">{i + 1}</span>
+                      <span><b>{s.title}</b><br />{s.date || "Date TBC"}</span>
+                    </Link>
+                  ))}
+                </div>
+                <Link href={`/courses/${course.id}`} className="pill pill-ghost pill-sm" style={{ marginTop: 14, display: "inline-block" }}>View course</Link>
               </div>
             </div>
           );

@@ -74,6 +74,8 @@ export default function ConsoleDashboard() {
   const waitlistCount = registrations.filter((r) => r.waitlisted).length;
   const pendingPartnerCount = partners.filter((p) => p.status === "pending").length;
   const pendingReferralCount = referrals.filter((r) => r.status === "invited").length;
+  const allLearnerIds = new Set(registrations.map((r) => r.learner_id).filter(Boolean));
+  const accountLearnerIds = new Set(registrations.filter((r) => r.has_account).map((r) => r.learner_id));
 
   return (
     <DashShell
@@ -94,6 +96,7 @@ export default function ConsoleDashboard() {
         { label: "Trainer applications waiting", value: pendingTrainerCount },
         { label: "Registrations", value: registrations.length },
         { label: "On waitlist", value: waitlistCount },
+        { label: "Learners with accounts", value: `${accountLearnerIds.size} / ${allLearnerIds.size}` },
         { label: "Partner interest waiting", value: pendingPartnerCount },
         { label: "Referrals waiting", value: pendingReferralCount },
       ]}
@@ -326,9 +329,16 @@ function RequestsTab({ sessions, courses, refresh }) {
 
 /* ---------------- Courses tab ---------------- */
 function CoursesTab({ courses, categories, sessions, trainers, refresh }) {
-  const [form, setForm] = useState({ title: "", description: "", categoryId: categories[0]?.id || "" });
+  const [form, setForm] = useState({ title: "", description: "", categoryId: categories[0]?.id || "", image: "", previewImage: "" });
   const [sessionRows, setSessionRows] = useState([]);
   const [error, setError] = useState("");
+
+  function readFile(file, onDone) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => onDone(reader.result);
+    reader.readAsDataURL(file);
+  }
 
   async function create() {
     setError("");
@@ -338,13 +348,17 @@ function CoursesTab({ courses, categories, sessions, trainers, refresh }) {
         .filter((r) => r.title.trim())
         .map((r) => ({ title: r.title, categoryId: r.categoryId || null, brief: r.brief, date: r.date, time: r.time, capacity: r.capacity || null, trainerId: r.linkId || null }));
       await jsonFetch("/api/admin/courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, sessions: sessionsPayload }) });
-      setForm({ title: "", description: "", categoryId: categories[0]?.id || "" });
+      setForm({ title: "", description: "", categoryId: categories[0]?.id || "", image: "", previewImage: "" });
       setSessionRows([]);
       refresh();
     } catch (e) { setError(e.message); }
   }
   async function setStatus(id, status) {
     await jsonFetch(`/api/admin/courses/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    refresh();
+  }
+  async function setCourseImage(id, field, dataUrl) {
+    await jsonFetch(`/api/admin/courses/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [field]: dataUrl }) });
     refresh();
   }
   async function del(id) { await jsonFetch(`/api/admin/courses/${id}`, { method: "DELETE" }); refresh(); }
@@ -361,6 +375,22 @@ function CoursesTab({ courses, categories, sessions, trainers, refresh }) {
           <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+        </div>
+        <div className="row2">
+          <div className="field">
+            <label>Cover image <span className="hint">(banner on the course's own page)</span></label>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {form.image ? <img src={form.image} alt="" style={{ width: 64, height: 40, objectFit: "cover", borderRadius: 6 }} /> : <div style={{ width: 64, height: 40, background: "var(--panel)", borderRadius: 6, flexShrink: 0 }} />}
+              <input type="file" accept="image/*" onChange={(e) => readFile(e.target.files?.[0], (dataUrl) => setForm((f) => ({ ...f, image: dataUrl })))} />
+            </div>
+          </div>
+          <div className="field">
+            <label>Preview image <span className="hint">(thumbnail on the home page)</span></label>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {form.previewImage ? <img src={form.previewImage} alt="" style={{ width: 64, height: 40, objectFit: "cover", borderRadius: 6 }} /> : <div style={{ width: 64, height: 40, background: "var(--panel)", borderRadius: 6, flexShrink: 0 }} />}
+              <input type="file" accept="image/*" onChange={(e) => readFile(e.target.files?.[0], (dataUrl) => setForm((f) => ({ ...f, previewImage: dataUrl })))} />
+            </div>
+          </div>
         </div>
 
         <div style={{ borderTop: "1px solid var(--line)", margin: "18px 0 12px" }} />
@@ -382,6 +412,22 @@ function CoursesTab({ courses, categories, sessions, trainers, refresh }) {
               </div>
               <p style={{ fontSize: 13, color: "var(--navy-soft)" }}>{c.description}</p>
               <div style={{ fontSize: 12.5, color: "var(--navy-soft)", marginBottom: 10 }}>{attached.length} session(s) attached</div>
+              <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {c.image ? <img src={c.image} alt="" style={{ width: 56, height: 34, objectFit: "cover", borderRadius: 6 }} /> : <div style={{ width: 56, height: 34, background: "var(--panel)", borderRadius: 6 }} />}
+                  <label className="pill pill-ghost pill-sm" style={{ cursor: "pointer" }}>
+                    {c.image ? "Change cover" : "Add cover image"}
+                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => readFile(e.target.files?.[0], (dataUrl) => setCourseImage(c.id, "image", dataUrl))} />
+                  </label>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {c.preview_image ? <img src={c.preview_image} alt="" style={{ width: 56, height: 34, objectFit: "cover", borderRadius: 6 }} /> : <div style={{ width: 56, height: 34, background: "var(--panel)", borderRadius: 6 }} />}
+                  <label className="pill pill-ghost pill-sm" style={{ cursor: "pointer" }}>
+                    {c.preview_image ? "Change preview" : "Add preview image"}
+                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => readFile(e.target.files?.[0], (dataUrl) => setCourseImage(c.id, "previewImage", dataUrl))} />
+                  </label>
+                </div>
+              </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {c.status !== "published" ? (
                   <button className="pill pill-primary pill-sm" onClick={() => setStatus(c.id, "published")}>Publish</button>
@@ -456,8 +502,11 @@ function ProgramRowsEditor({ rows, setRows, categories, linkOptions, linkLabel }
 
 /* ---------------- Trainers tab ---------------- */
 function TrainersTab({ trainers, categories, courses, refresh }) {
-  const pending = trainers.filter((t) => t.status === "pending");
-  const approved = trainers.filter((t) => t.status === "approved");
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const matches = (t) => !q || (t.name || "").toLowerCase().includes(q) || (t.email || "").toLowerCase().includes(q);
+  const pending = trainers.filter((t) => t.status === "pending" && matches(t));
+  const approved = trainers.filter((t) => t.status === "approved" && matches(t));
   const [form, setForm] = useState({ name: "", email: "", bio: "", mode: "" });
   const [programRows, setProgramRows] = useState([]);
   const [credModal, setCredModal] = useState(null);
@@ -512,8 +561,12 @@ function TrainersTab({ trainers, categories, courses, refresh }) {
         </div>
       )}
 
+      <div className="field" style={{ maxWidth: 320 }}>
+        <input placeholder="Search trainers by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+
       <Panel title={`Pending applications (${pending.length})`}>
-        {pending.length === 0 && <div className="empty-note">No pending trainer applications right now.</div>}
+        {pending.length === 0 && <div className="empty-note">{q ? "No pending applications match that search." : "No pending trainer applications right now."}</div>}
         {pending.map((t) => (
           <div key={t.id} className="registrant-row" style={{ padding: "12px 4px" }}>
             <div style={{ minWidth: 220 }}>
@@ -554,7 +607,7 @@ function TrainersTab({ trainers, categories, courses, refresh }) {
                   <td><button className="icon-btn danger" onClick={() => del(t.id)}>Delete</button></td>
                 </tr>
               ))}
-              {approved.length === 0 && <tr><td colSpan={3} className="empty-note">No approved trainers yet.</td></tr>}
+              {approved.length === 0 && <tr><td colSpan={3} className="empty-note">{q ? "No approved trainers match that search." : "No approved trainers yet."}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -634,8 +687,19 @@ function CategoriesTab({ categories, refresh }) {
 
 /* ---------------- Registrants tab ---------------- */
 function RegistrantsTab({ sessions, registrations, refresh }) {
-  const sessionsWithRegs = sessions.filter((s) => registrations.some((r) => r.session_id === s.id));
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? registrations.filter((r) => (r.name || "").toLowerCase().includes(q) || (r.email || "").toLowerCase().includes(q))
+    : registrations;
+
+  const sessionsWithRegs = sessions.filter((s) => filtered.some((r) => r.session_id === s.id));
   const [openId, setOpenId] = useState(sessionsWithRegs[0]?.id || null);
+  // While actively searching, expand every session with a match so results
+  // are visible without clicking "Expand" one at a time.
+  const effectiveOpenId = q ? null : openId;
+
+  const accountsInView = new Set(filtered.filter((r) => r.has_account).map((r) => r.learner_id));
 
   async function toggle(id, field, value) {
     await jsonFetch(`/api/admin/registrations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [field]: value }) });
@@ -650,9 +714,9 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
 
   function exportCsv(sessionId, title) {
     const rows = registrations.filter((r) => r.session_id === sessionId);
-    const header = ["Name", "Email", "Phone", "City", "Role", "Profile type", "Organization", "Org role", "Attended", "Waitlisted"];
+    const header = ["Name", "Email", "Phone", "City", "Role", "Profile type", "Organization", "Org role", "Has account", "Attended", "Waitlisted"];
     const lines = [header.join(",")].concat(
-      rows.map((r) => [r.name, r.email, r.phone, r.city, r.role, r.profile_type || "individual", r.org_name, r.org_role, r.attended ? "yes" : "no", r.waitlisted ? "yes" : "no"]
+      rows.map((r) => [r.name, r.email, r.phone, r.city, r.role, r.profile_type || "individual", r.org_name, r.org_role, r.has_account ? "yes" : "no", r.attended ? "yes" : "no", r.waitlisted ? "yes" : "no"]
         .map((v) => `"${String(v || "").replace(/"/g, '""')}"`).join(","))
     );
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
@@ -666,9 +730,13 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
 
   return (
     <Panel title={`Registrants by session (${registrations.length} total registrations)`}>
-      {sessionsWithRegs.length === 0 && <div className="empty-note">No registrations yet.</div>}
+      <p className="hint" style={{ display: "block", marginBottom: 14 }}>{accountsInView.size} learner{accountsInView.size === 1 ? "" : "s"} shown here {accountsInView.size === 1 ? "has" : "have"} a Vidyam account.</p>
+      <div className="field" style={{ maxWidth: 320 }}>
+        <input placeholder="Search by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+      {sessionsWithRegs.length === 0 && <div className="empty-note">{q ? "No registrants match that search." : "No registrations yet."}</div>}
       {sessionsWithRegs.map((s) => {
-        const rows = registrations.filter((r) => r.session_id === s.id);
+        const rows = filtered.filter((r) => r.session_id === s.id);
         const confirmed = rows.filter((r) => !r.waitlisted).length;
         const waitlisted = rows.filter((r) => r.waitlisted).length;
         return (
@@ -680,10 +748,10 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="pill pill-ghost pill-sm" onClick={() => exportCsv(s.id, s.title)}>Export CSV</button>
-                <button className="pill pill-ghost pill-sm" onClick={() => setOpenId(openId === s.id ? null : s.id)}>{openId === s.id ? "Collapse" : "Expand"}</button>
+                {!q && <button className="pill pill-ghost pill-sm" onClick={() => setOpenId(openId === s.id ? null : s.id)}>{openId === s.id ? "Collapse" : "Expand"}</button>}
               </div>
             </div>
-            {openId === s.id && (
+            {(effectiveOpenId === s.id || q) && (
               <div style={{ marginTop: 12 }}>
                 {rows.map((r) => (
                   <div key={r.id} className="registrant-row">
@@ -692,6 +760,7 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
                       {r.email} {r.city ? `· ${r.city}` : ""} {r.role ? `· ${r.role}` : ""}
                       {r.profile_type && r.profile_type !== "individual" ? ` · ${profileLabel(r)}` : ""}
                     </span>
+                    {r.has_account && <span className="badge approved" style={{ fontSize: 11 }}>Has account</span>}
                     <span className={`check-pill ${r.waitlisted ? "waitlist" : ""}`} onClick={() => toggle(r.id, "waitlisted", !r.waitlisted)}>
                       {r.waitlisted ? "Waitlisted — promote" : "Confirmed"}
                     </span>
@@ -711,8 +780,11 @@ function RegistrantsTab({ sessions, registrations, refresh }) {
 
 /* ---------------- Partners tab ---------------- */
 function PartnersTab({ partners, refresh }) {
-  const pending = partners.filter((p) => p.status === "pending");
-  const reviewed = partners.filter((p) => p.status !== "pending");
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const matches = (p) => !q || (p.name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q);
+  const pending = partners.filter((p) => p.status === "pending" && matches(p));
+  const reviewed = partners.filter((p) => p.status !== "pending" && matches(p));
   const [notes, setNotes] = useState({});
 
   async function decide(id, status) {
@@ -726,9 +798,12 @@ function PartnersTab({ partners, refresh }) {
 
   return (
     <>
+      <div className="field" style={{ maxWidth: 320 }}>
+        <input placeholder="Search partners by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
       <Panel title={`Pending partner interest (${pending.length})`}>
         <p className="hint" style={{ display: "block", marginBottom: 14 }}>Submitted from the public "Partner with us" page. Approving here doesn't create any account — it just marks the lead as accepted so follow-up (email/call) can happen off-platform.</p>
-        {pending.length === 0 && <div className="empty-note">No partner applications waiting on you right now.</div>}
+        {pending.length === 0 && <div className="empty-note">{q ? "No pending partners match that search." : "No partner applications waiting on you right now."}</div>}
         {pending.map((p) => (
           <div key={p.id} className="proposal-card">
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -772,7 +847,7 @@ function PartnersTab({ partners, refresh }) {
                   <td><button className="icon-btn danger" onClick={() => del(p.id)}>Delete</button></td>
                 </tr>
               ))}
-              {reviewed.length === 0 && <tr><td colSpan={4} className="empty-note">No reviewed partners yet.</td></tr>}
+              {reviewed.length === 0 && <tr><td colSpan={4} className="empty-note">{q ? "No reviewed partners match that search." : "No reviewed partners yet."}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -783,8 +858,16 @@ function PartnersTab({ partners, refresh }) {
 
 /* ---------------- Referrals tab ---------------- */
 function ReferralsTab({ referrals, refresh }) {
-  const active = referrals.filter((r) => r.status !== "approved" && r.status !== "declined");
-  const closed = referrals.filter((r) => r.status === "approved" || r.status === "declined");
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const matches = (r) =>
+    !q ||
+    (r.referred_name || "").toLowerCase().includes(q) ||
+    (r.referred_email || "").toLowerCase().includes(q) ||
+    (r.referrer_name || "").toLowerCase().includes(q) ||
+    (r.referrer_email || "").toLowerCase().includes(q);
+  const active = referrals.filter((r) => r.status !== "approved" && r.status !== "declined" && matches(r));
+  const closed = referrals.filter((r) => (r.status === "approved" || r.status === "declined") && matches(r));
 
   async function remind(id) {
     await jsonFetch(`/api/admin/referrals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remind" }) });
@@ -806,9 +889,12 @@ function ReferralsTab({ referrals, refresh }) {
 
   return (
     <>
+      <div className="field" style={{ maxWidth: 320 }}>
+        <input placeholder="Search referrals by name or email…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
       <Panel title={`Active referrals (${active.length})`}>
         <p className="hint" style={{ display: "block", marginBottom: 14 }}>Discover → Refer → Convert → Recognize. Each row is one person referred; once they apply via their personal invite link, it moves to "Applied," and once approved as a trainer, the referrer is automatically emailed a thank-you.</p>
-        {active.length === 0 && <div className="empty-note">No active referrals right now.</div>}
+        {active.length === 0 && <div className="empty-note">{q ? "No active referrals match that search." : "No active referrals right now."}</div>}
         {active.map((r) => (
           <div key={r.id} className="registrant-row" style={{ padding: "12px 4px" }}>
             <div style={{ minWidth: 220 }}>
@@ -840,7 +926,7 @@ function ReferralsTab({ referrals, refresh }) {
                   <td><button className="icon-btn danger" onClick={() => del(r.id)}>Delete</button></td>
                 </tr>
               ))}
-              {closed.length === 0 && <tr><td colSpan={4} className="empty-note">No closed referrals yet.</td></tr>}
+              {closed.length === 0 && <tr><td colSpan={4} className="empty-note">{q ? "No closed referrals match that search." : "No closed referrals yet."}</td></tr>}
             </tbody>
           </table>
         </div>

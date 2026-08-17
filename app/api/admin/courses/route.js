@@ -17,11 +17,11 @@ export async function GET() {
 // capacity) — in the same submission, instead of creating the course here
 // and then attaching sessions separately from the Programs tab.
 export async function POST(request) {
-  const { title, description, categoryId, sessions } = await request.json();
+  const { title, description, categoryId, sessions, image, previewImage } = await request.json();
   if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
   const row = await db.queryOne(
-    "INSERT INTO courses (title, description, category_id, status) VALUES ($1,$2,$3,'draft') RETURNING id",
-    [title, description || "", categoryId || null]
+    "INSERT INTO courses (title, description, category_id, status, image, preview_image) VALUES ($1,$2,$3,'draft',$4,$5) RETURNING id",
+    [title, description || "", categoryId || null, image || "", previewImage || ""]
   );
   const courseId = row.id;
 

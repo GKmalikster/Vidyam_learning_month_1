@@ -11,9 +11,11 @@ export async function PATCH(request, { params }) {
     description: body.description ?? existing.description,
     category_id: body.categoryId ?? existing.category_id,
     status: body.status ?? existing.status,
+    image: body.image ?? existing.image,
+    preview_image: body.previewImage ?? existing.preview_image,
   };
-  await db.query("UPDATE courses SET title=$1, description=$2, category_id=$3, status=$4 WHERE id=$5", [
-    merged.title, merged.description, merged.category_id, merged.status, id,
+  await db.query("UPDATE courses SET title=$1, description=$2, category_id=$3, status=$4, image=$5, preview_image=$6 WHERE id=$7", [
+    merged.title, merged.description, merged.category_id, merged.status, merged.image, merged.preview_image, id,
   ]);
   return NextResponse.json({ ok: true });
 }

@@ -42,7 +42,10 @@ export default async function ProgramDetail({ params }) {
   return (
     <>
       <SiteNav />
-      <div className="detail-card" style={{ maxWidth: 760, margin: "40px auto", padding: 32, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 20 }}>
+      <div style={{ maxWidth: 760, margin: "40px auto 0" }}>
+        <Link href="/" className="back-link" style={{ display: "inline-block", textDecoration: "none" }}>← All programs</Link>
+      </div>
+      <div className="detail-card" style={{ maxWidth: 760, margin: "12px auto 40px", padding: 32, background: "var(--card)", border: "1px solid var(--line)", borderRadius: 20 }}>
         {s.course_title && (
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--purple)", marginBottom: 8 }}>
             📚 Part of the course: {s.course_title}
@@ -75,10 +78,13 @@ export default async function ProgramDetail({ params }) {
                 </div>
               )}
               <div>
-                <div style={{ fontWeight: 700, color: "var(--navy)" }}>{s.trainer_name}</div>
+                <div style={{ fontWeight: 700, color: "var(--navy)" }}>
+                  <Link href={`/trainers/${s.trainer_id}`} style={{ color: "inherit", textDecoration: "none" }}>{s.trainer_name}</Link>
+                </div>
                 <div style={{ fontSize: 13, color: "var(--navy-soft)", margin: "4px 0" }}>{s.trainer_years ? `${s.trainer_years} yrs experience · ` : ""}{s.trainer_mode}</div>
-                <p style={{ fontSize: 14, color: "var(--navy-soft)", lineHeight: 1.6 }}>{s.trainer_bio}</p>
-                {s.trainer_topics && <div style={{ fontSize: 13, color: "var(--navy-soft)" }}><b>Topics:</b> {s.trainer_topics}</div>}
+                {s.trainer_bio && <p className="trainer-bio-clamp" style={{ fontSize: 14, color: "var(--navy-soft)", lineHeight: 1.6, margin: "0 0 4px" }}>{s.trainer_bio}</p>}
+                <Link href={`/trainers/${s.trainer_id}`} className="read-more-link" style={{ fontSize: 13, fontWeight: 700, color: "var(--orange)", textDecoration: "none" }}>Read more →</Link>
+                {s.trainer_topics && <div style={{ fontSize: 13, color: "var(--navy-soft)", marginTop: 8 }}><b>Topics:</b> {s.trainer_topics}</div>}
               </div>
             </div>
           ) : (
@@ -121,7 +127,7 @@ export default async function ProgramDetail({ params }) {
 
         {!isCompleted && (
           <div style={{ marginTop: 8 }}>
-            <Link href="/join" className="pill pill-grad">{isFull ? "Join the waitlist" : "Register for this program"}</Link>
+            <Link href={`/join?session=${s.id}`} className="pill pill-grad">{isFull ? "Join the waitlist" : "Register for this program"}</Link>
           </div>
         )}
       </div>

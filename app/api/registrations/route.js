@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import db from "@/lib/db";
+import { createLearnerSessionToken, LEARNER_SESSION_COOKIE_NAME, LEARNER_SESSION_MAX_AGE } from "@/lib/learnerAuth";
 
 // Public: learner registration submission. One row is written per selected
 // program, all sharing the same profile — mirrors the multi-program wizard.
@@ -64,7 +65,7 @@ export async function POST(request) {
   if (learner) {
     await db.query(
       `UPDATE learners SET
-        name=$1, phone=$3, city=$4, age_group=$5, role=$6, education=$7, industry=$8, experience=$9,
+        name=$1, email=$2, phone=$3, city=$4, age_group=$5, role=$6, education=$7, industry=$8, experience=$9,
         interests=$10, linkedin=$11, format=$12, language=$13, time_pref=$14, is_returning=$15, goal=$16,
         source=$17, profile_type=$18, org_name=$19, org_role=$20, org_detail=$21, corporate_modes=$22
        WHERE id = $23`,
@@ -84,17 +85,29 @@ export async function POST(request) {
   }
   const learnerId = learner.id;
 
+  // shouldSignIn tracks whether we can safely issue a learner session
+  // cookie on this response. That's only safe in two cases: (a) an account
+  // was just created in this very request, using a password the submitter
+  // just chose themselves, or (b) an account already existed and the
+  // submitted password matches its hash — i.e. this doubles as a login.
+  // A bare email with no correct password must never sign anyone in, or
+  // submitting someone else's email address would silently log in as them.
   let accountCreated = false;
+  let shouldSignIn = false;
   if (password && password.length >= 8) {
-    const existingAccount = await db.queryOne("SELECT id FROM learner_accounts WHERE learner_id = $1", [learnerId]);
+    const existingAccount = await db.queryOne("SELECT id, password_hash FROM learner_accounts WHERE learner_id = $1", [learnerId]);
     if (!existingAccount) {
       const hash = bcrypt.hashSync(password, 10);
       await db.query("INSERT INTO learner_accounts (learner_id, password_hash) VALUES ($1, $2)", [learnerId, hash]);
       accountCreated = true;
+      shouldSignIn = true;
+    } else if (bcrypt.compareSync(password, existingAccount.password_hash)) {
+      shouldSignIn = true;
     }
-    // If an account already exists, the submitted password is intentionally
-    // ignored rather than silently changing it or rejecting the whole
-    // registration — keeps re-registering low-friction.
+    // If an account already exists and the password doesn't match, it's
+    // intentionally ignored rather than rejecting the whole registration —
+    // keeps re-registering low-friction even if they mistype a password
+    // they no longer remember exactly.
   }
 
   const ids = [];
@@ -160,8 +173,21 @@ export async function POST(request) {
     if (waitlisted) waitlistedFor.push(Number(sessionId));
   }
 
-  return NextResponse.json(
-    { registrationIds: ids, waitlistedFor, alreadyRegisteredFor, learnerId, accountCreated },
+  const res = NextResponse.json(
+    { registrationIds: ids, waitlistedFor, alreadyRegisteredFor, learnerId, accountCreated, signedIn: shouldSignIn },
     { status: 201 }
   );
+
+  if (shouldSignIn) {
+    const sessionToken = await createLearnerSessionToken(learner);
+    res.cookies.set(LEARNER_SESSION_COOKIE_NAME, sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: LEARNER_SESSION_MAX_AGE,
+    });
+  }
+
+  return res;
 }
