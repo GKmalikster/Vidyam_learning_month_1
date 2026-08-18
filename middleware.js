@@ -74,11 +74,11 @@ export async function middleware(request) {
   const isAdminApi = pathname.startsWith("/api/admin");
   const isConsole = pathname.startsWith("/console");
 
-  const isTrainerLoginPage = pathname === "/trainer/login";
+  const isTrainerLoginPage = pathname === "/trainer/login" || pathname === "/trainer/forgot-password" || pathname === "/trainer/reset-password";
   const isTrainerApi = pathname.startsWith("/api/trainer") && !pathname.startsWith("/api/trainer-auth");
   const isTrainerArea = pathname.startsWith("/trainer");
 
-  const isLearnerLoginPage = pathname === "/learner/login";
+  const isLearnerLoginPage = pathname === "/learner/login" || pathname === "/learner/forgot-password" || pathname === "/learner/reset-password";
   const isLearnerApi = pathname.startsWith("/api/learner") && !pathname.startsWith("/api/learner-auth");
   const isLearnerArea = pathname.startsWith("/learner");
 

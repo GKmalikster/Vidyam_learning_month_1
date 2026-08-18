@@ -19,15 +19,37 @@ const NAV = [
 export default function SiteNav() {
   const pathname = usePathname();
   const [signinOpen, setSigninOpen] = useState(false);
+  const [mobileSigninOpen, setMobileSigninOpen] = useState(false);
   const signinRef = useRef(null);
+  const mobileSigninRef = useRef(null);
+
+  // A visitor who already has a valid learner or trainer session cookie
+  // gets a direct "My dashboard" link instead of a generic "Sign in" —
+  // without this check the nav had no way to tell a returning, already
+  // signed-in learner apart from a first-time guest.
+  const [session, setSession] = useState(null); // { type: 'learner'|'trainer', name } | null
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/learner-auth/me").then((r) => r.json()).catch(() => ({ learner: null })),
+      fetch("/api/trainer-auth/me").then((r) => r.json()).catch(() => ({ trainer: null })),
+    ]).then(([learnerBody, trainerBody]) => {
+      if (trainerBody.trainer) setSession({ type: "trainer", name: trainerBody.trainer.name });
+      else if (learnerBody.learner) setSession({ type: "learner", name: learnerBody.learner.name });
+      else setSession(null);
+    });
+  }, []);
 
   useEffect(() => {
     function onClickOutside(e) {
       if (signinRef.current && !signinRef.current.contains(e.target)) setSigninOpen(false);
+      if (mobileSigninRef.current && !mobileSigninRef.current.contains(e.target)) setMobileSigninOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
+
+  const dashboardHref = session?.type === "trainer" ? "/trainer/dashboard" : "/learner/dashboard";
 
   return (
     <>
@@ -46,17 +68,23 @@ export default function SiteNav() {
               {item.label}
             </Link>
           ))}
-          <div className="signin-dropdown" ref={signinRef}>
-            <button type="button" className={signinOpen ? "active" : ""} onClick={() => setSigninOpen((o) => !o)}>
-              Sign in ▾
-            </button>
-            {signinOpen && (
-              <div className="signin-menu">
-                <Link href="/learner/login" onClick={() => setSigninOpen(false)}>Learner sign in</Link>
-                <Link href="/trainer/login" onClick={() => setSigninOpen(false)}>Trainer sign in</Link>
-              </div>
-            )}
-          </div>
+          {session ? (
+            <Link href={dashboardHref} className={pathname === dashboardHref ? "active" : ""}>
+              {session.name} · Dashboard
+            </Link>
+          ) : (
+            <div className="signin-dropdown" ref={signinRef}>
+              <button type="button" className={signinOpen ? "active" : ""} onClick={() => setSigninOpen((o) => !o)}>
+                Sign in ▾
+              </button>
+              {signinOpen && (
+                <div className="signin-menu">
+                  <Link href="/learner/login" onClick={() => setSigninOpen(false)}>Learner sign in</Link>
+                  <Link href="/trainer/login" onClick={() => setSigninOpen(false)}>Trainer sign in</Link>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </nav>
       <div className="tabbar">
@@ -66,10 +94,25 @@ export default function SiteNav() {
             {item.tabLabel || item.label}
           </Link>
         ))}
-        <Link href="/learner/login" className={pathname === "/learner/login" ? "active" : ""}>
-          <span className="ic">🔑</span>
-          Sign in
-        </Link>
+        {session ? (
+          <Link href={dashboardHref} className={pathname === dashboardHref ? "active" : ""}>
+            <span className="ic">{session.type === "trainer" ? "🧑‍🏫" : "🎓"}</span>
+            Dashboard
+          </Link>
+        ) : (
+          <div className="signin-dropdown mobile-signin" ref={mobileSigninRef}>
+            <button type="button" className={mobileSigninOpen ? "active" : ""} onClick={() => setMobileSigninOpen((o) => !o)}>
+              <span className="ic">🔑</span>
+              Sign in
+            </button>
+            {mobileSigninOpen && (
+              <div className="signin-menu signin-menu-up">
+                <Link href="/learner/login" onClick={() => setMobileSigninOpen(false)}>Learner sign in</Link>
+                <Link href="/trainer/login" onClick={() => setMobileSigninOpen(false)}>Trainer sign in</Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );

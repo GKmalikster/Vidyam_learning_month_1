@@ -47,7 +47,10 @@ export default function TrainerLogin() {
         <div className="field"><label>Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus /></div>
         <div className="field"><label>Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
         <button className="pill pill-primary" style={{ width: "100%" }} disabled={submitting}>{submitting ? "Signing in…" : "Sign in"}</button>
-        <p style={{ textAlign: "center", fontSize: 13, color: "var(--navy-soft)", marginTop: 18, marginBottom: 0 }}>
+        <p style={{ textAlign: "center", fontSize: 13, marginTop: 14, marginBottom: 0 }}>
+          <Link href="/trainer/forgot-password" style={{ color: "var(--blue)", fontWeight: 600 }}>Forgot your password?</Link>
+        </p>
+        <p style={{ textAlign: "center", fontSize: 13, color: "var(--navy-soft)", marginTop: 10, marginBottom: 0 }}>
           Not a trainer yet? <Link href="/teach" style={{ color: "var(--blue)", fontWeight: 600 }}>Sign up to become one</Link> — you'll set your password there, and can log in as soon as we approve your application.
         </p>
       </form>

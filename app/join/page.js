@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import db from "@/lib/db";
 import SiteNav from "../components/SiteNav";
@@ -22,7 +23,9 @@ export default async function JoinPage() {
         <p className="section-sub" style={{ textAlign: "center", color: "var(--navy-soft)", marginBottom: 28 }}>
           Please select as many free programs as you would like to join, using a single form and profile.
         </p>
-        <JoinForm sessions={sessions} categories={categories} />
+        <Suspense fallback={null}>
+          <JoinForm sessions={sessions} categories={categories} />
+        </Suspense>
       </div>
       <Footer />
     </>

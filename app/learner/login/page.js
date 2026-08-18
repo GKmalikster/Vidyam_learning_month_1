@@ -47,7 +47,10 @@ export default function LearnerLogin() {
         <div className="field"><label>Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus /></div>
         <div className="field"><label>Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
         <button className="pill pill-primary" style={{ width: "100%" }} disabled={submitting}>{submitting ? "Signing in…" : "Sign in"}</button>
-        <p style={{ textAlign: "center", fontSize: 13, color: "var(--navy-soft)", marginTop: 18, marginBottom: 0 }}>
+        <p style={{ textAlign: "center", fontSize: 13, marginTop: 14, marginBottom: 0 }}>
+          <Link href="/learner/forgot-password" style={{ color: "var(--blue)", fontWeight: 600 }}>Forgot your password?</Link>
+        </p>
+        <p style={{ textAlign: "center", fontSize: 13, color: "var(--navy-soft)", marginTop: 10, marginBottom: 0 }}>
           Don&apos;t have an account? <Link href="/join" style={{ color: "var(--blue)", fontWeight: 600 }}>Join a program</Link> and set a password there to create one.
         </p>
       </form>

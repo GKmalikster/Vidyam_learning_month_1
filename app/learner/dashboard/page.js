@@ -71,7 +71,12 @@ export default function LearnerDashboard() {
       {tab === "overview" && <OverviewTab mine={mine} available={available} setTab={setTab} />}
       {tab === "mine" && <MyProgramsTab mine={mine} />}
       {tab === "browse" && <BrowseTab available={available} refresh={refresh} />}
-      {tab === "profile" && <ProfileTab learner={learner} categories={categories} refresh={refresh} />}
+      {tab === "profile" && (
+        <>
+          <ProfileTab learner={learner} categories={categories} refresh={refresh} />
+          <ChangePasswordPanel endpoint="/api/learner-auth/change-password" />
+        </>
+      )}
     </DashShell>
   );
 }
@@ -203,6 +208,21 @@ function ProfileTab({ learner, categories, refresh }) {
       <div className="field"><label>Phone</label><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
       <div className="field"><label>City</label><input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
       <div className="field">
+        <label>Age group</label>
+        <select value={form.ageGroup} onChange={(e) => setForm({ ...form, ageGroup: e.target.value })}>
+          <option value="">Select</option>
+          <option>Under 18</option><option>18–24</option><option>25–34</option><option>35–44</option><option>45+</option>
+        </select>
+      </div>
+      <div className="field">
+        <label>Current role</label>
+        <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+          <option value="">Select</option>
+          <option>Student</option><option>Early career professional</option><option>Mid-career professional</option>
+          <option>Senior professional / leader</option><option>Entrepreneur / founder</option><option>Between roles</option><option>Other</option>
+        </select>
+      </div>
+      <div className="field">
         <label>Areas you&apos;re interested in</label>
         <div className="chip-row">
           {categories.map((c) => (
@@ -210,6 +230,9 @@ function ProfileTab({ learner, categories, refresh }) {
           ))}
         </div>
       </div>
+      <div className="field"><label>Highest education</label><input value={form.education} onChange={(e) => setForm({ ...form, education: e.target.value })} /></div>
+      <div className="field"><label>Industry</label><input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} /></div>
+      <div className="field"><label>Years of experience</label><input value={form.experience} onChange={(e) => setForm({ ...form, experience: e.target.value })} /></div>
       <div className="field"><label>LinkedIn</label><input value={form.linkedin} onChange={(e) => setForm({ ...form, linkedin: e.target.value })} /></div>
       <div className="field">
         <label>Preferred format</label>
@@ -217,8 +240,55 @@ function ProfileTab({ learner, categories, refresh }) {
           <option value="">Select</option><option>Online</option><option>In-person</option><option>Either</option>
         </select>
       </div>
+      <div className="field">
+        <label>Preferred language</label>
+        <select value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })}>
+          <option value="">Select</option><option>English</option><option>Hindi</option><option>Other</option>
+        </select>
+      </div>
+      <div className="field">
+        <label>Best time to attend</label>
+        <select value={form.timePref} onChange={(e) => setForm({ ...form, timePref: e.target.value })}>
+          <option value="">Select</option><option>Weekday evenings</option><option>Weekends</option><option>Flexible / either</option>
+        </select>
+      </div>
       <div className="field"><label>What are you hoping to get out of this?</label><textarea value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} /></div>
       <button className="pill pill-primary" onClick={save}>Save profile</button>
+      {saved && <span style={{ color: "#227722", fontSize: 13, marginLeft: 12 }}>Saved ✓</span>}
+    </Panel>
+  );
+}
+
+function ChangePasswordPanel({ endpoint }) {
+  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setError("");
+    if (form.newPassword.length < 8) { setError("New password must be at least 8 characters."); return; }
+    if (form.newPassword !== form.confirmPassword) { setError("New passwords don't match."); return; }
+    setSaving(true);
+    try {
+      await jsonFetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Panel title="Change password">
+      {error && <div className="empty-note" style={{ borderColor: "#e0554a", color: "#c0392b", marginBottom: 14 }}>{error}</div>}
+      <div className="field"><label>Current password</label><input type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} /></div>
+      <div className="field"><label>New password</label><input type="password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} /></div>
+      <div className="field"><label>Confirm new password</label><input type="password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} /></div>
+      <button className="pill pill-primary" disabled={saving} onClick={save}>{saving ? "Saving…" : "Update password"}</button>
       {saved && <span style={{ color: "#227722", fontSize: 13, marginLeft: 12 }}>Saved ✓</span>}
     </Panel>
   );

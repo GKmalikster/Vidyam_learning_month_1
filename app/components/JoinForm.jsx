@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const STEP_HINTS = {
@@ -37,12 +38,18 @@ const PROFILE_ORG_FIELDS = {
 };
 
 export default function JoinForm({ sessions, categories }) {
+  const searchParams = useSearchParams();
+  const preselectId = Number(searchParams.get("session")) || null;
+  const preselectSession = preselectId ? sessions.find((s) => s.id === preselectId) : null;
+
   const [step, setStep] = useState(1);
-  const [selectedSessions, setSelectedSessions] = useState([]);
+  const [selectedSessions, setSelectedSessions] = useState(preselectId ? [preselectId] : []);
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [waitlistedFor, setWaitlistedFor] = useState([]);
+  const [registeredCount, setRegisteredCount] = useState(0);
+  const [alreadyRegisteredTitles, setAlreadyRegisteredTitles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [profile, setProfile] = useState({
     name: "", email: "", phone: "", city: "", ageGroup: "", role: "",
@@ -54,6 +61,41 @@ export default function JoinForm({ sessions, categories }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [accountCreated, setAccountCreated] = useState(false);
+
+  // Detects an existing learner session so a returning, signed-in learner
+  // is offered the one-click path instead of only the full guest form —
+  // the form below still works as a fallback (e.g. registering someone
+  // else), it just isn't the first thing they see.
+  const [learner, setLearner] = useState(null); // undefined-ish until checked; null = not signed in
+  const [instantState, setInstantState] = useState("idle"); // idle | joining | joined | waitlisted | already | error
+  const [instantError, setInstantError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/learner-auth/me")
+      .then((r) => r.json())
+      .then((body) => setLearner(body.learner || null))
+      .catch(() => setLearner(null));
+  }, []);
+
+  async function instantJoin() {
+    if (!preselectId) return;
+    setInstantState("joining");
+    setInstantError("");
+    try {
+      const res = await fetch("/api/learner/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: preselectId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 409) { setInstantState("already"); return; }
+      if (!res.ok) throw new Error(body.error || "Something went wrong. Please try again.");
+      setInstantState(body.waitlisted ? "waitlisted" : "joined");
+    } catch (e) {
+      setInstantState("error");
+      setInstantError(e.message);
+    }
+  }
 
   function toggleSession(id) {
     setSelectedSessions((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -106,6 +148,10 @@ export default function JoinForm({ sessions, categories }) {
       }
       const result = await res.json();
       setWaitlistedFor(result.waitlistedFor || []);
+      setRegisteredCount((result.registrationIds || []).length);
+      setAlreadyRegisteredTitles(
+        (result.alreadyRegisteredFor || []).map((id) => sessions.find((s) => s.id === id)?.title).filter(Boolean)
+      );
       setAccountCreated(!!result.accountCreated);
       setSuccess(true);
     } catch (e) {
@@ -119,25 +165,73 @@ export default function JoinForm({ sessions, categories }) {
     return (
       <div className="form-card" style={{ margin: "0 auto 56px", textAlign: "center" }}>
         <h2>Thank you for registering</h2>
-        <p style={{ color: "var(--navy-soft)" }}>
-          You have been registered for {selectedSessions.length} program{selectedSessions.length > 1 ? "s" : ""}. We will share the joining details closer to each session.
-        </p>
+        {registeredCount > 0 && (
+          <p style={{ color: "var(--navy-soft)" }}>
+            You have been registered for {registeredCount} new program{registeredCount > 1 ? "s" : ""}. We will share the joining details closer to each session.
+          </p>
+        )}
         {waitlistedFor.length > 0 && (
           <p style={{ color: "var(--orange-deep)", fontWeight: 600 }}>
             {waitlistedFor.length} of these {waitlistedFor.length > 1 ? "have" : "has"} reached full capacity, so you have been added to the waitlist. We will notify you as soon as a spot becomes available.
           </p>
         )}
+        {alreadyRegisteredTitles.length > 0 && (
+          <p style={{ color: "var(--navy-soft)" }}>
+            You were already registered for {alreadyRegisteredTitles.join(", ")} — no new registration was created for {alreadyRegisteredTitles.length > 1 ? "those" : "that"}.
+          </p>
+        )}
+        {registeredCount === 0 && alreadyRegisteredTitles.length === 0 && (
+          <p style={{ color: "var(--navy-soft)" }}>Your details have been saved.</p>
+        )}
         {accountCreated && (
           <p style={{ color: "var(--navy-soft)" }}>
-            Your dashboard is ready — <Link href="/learner/login" style={{ color: "var(--blue)", fontWeight: 600 }}>sign in</Link> anytime to see your programs and join new ones in one click, without filling out this form again.
+            Your dashboard is ready — <Link href="/learner/dashboard" style={{ color: "var(--blue)", fontWeight: 600 }}>go to your dashboard</Link> to see your programs and join new ones in one click, without filling out this form again.
           </p>
         )}
       </div>
     );
   }
 
+  if (learner && preselectId && ["joined", "waitlisted", "already"].includes(instantState)) {
+    return (
+      <div className="form-card" style={{ margin: "0 auto 56px", textAlign: "center" }}>
+        <h2>{instantState === "already" ? "You're already registered" : "You're in"}</h2>
+        <p style={{ color: "var(--navy-soft)" }}>
+          {instantState === "joined" && <>You have been registered for <b>{preselectSession?.title}</b>. We will share the joining details closer to the session.</>}
+          {instantState === "waitlisted" && <>This program has reached capacity, so you have been added to the waitlist for <b>{preselectSession?.title}</b>. We will notify you as soon as a spot becomes available.</>}
+          {instantState === "already" && <>You were already registered for <b>{preselectSession?.title}</b> — no need to do anything else.</>}
+        </p>
+        <Link href="/learner/dashboard" className="pill pill-primary">Go to your dashboard</Link>
+      </div>
+    );
+  }
+
   return (
     <div className="form-card" style={{ margin: "0 auto 56px" }}>
+      {learner && (
+        <div className="proposal-card" style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 16, marginBottom: 22, background: "var(--panel)" }}>
+          <div style={{ fontWeight: 700, color: "var(--navy)", marginBottom: 4 }}>Signed in as {learner.name}</div>
+          {preselectId && preselectSession ? (
+            <>
+              <p className="hint" style={{ display: "block", marginBottom: 10 }}>
+                Join <b>{preselectSession.title}</b> instantly using your saved profile — no need to fill out the form below.
+              </p>
+              {instantError && <div className="empty-note" style={{ borderColor: "#e0554a", color: "#c0392b", marginBottom: 10 }}>{instantError}</div>}
+              <button className="pill pill-primary pill-sm" disabled={instantState === "joining"} onClick={instantJoin}>
+                {instantState === "joining" ? "Joining…" : "Join instantly"}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="hint" style={{ display: "block", marginBottom: 10 }}>
+                Visit your dashboard to see the programs you have already joined, and join new ones in one click.
+              </p>
+              <Link href="/learner/dashboard" className="pill pill-primary pill-sm">Go to your dashboard</Link>
+            </>
+          )}
+          <p className="hint" style={{ display: "block", marginTop: 10 }}>Registering someone else, or with different details? You can still use the form below.</p>
+        </div>
+      )}
       <div className="wizard-progress-label">
         <span>Step {step} of 3</span>
         <span>{STEP_HINTS[step]}</span>
